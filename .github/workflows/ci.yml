@@ -37,6 +37,11 @@ jobs:
 
   # --------------------------------------------------------------------------
   # 2. Typecheck TypeScript strict (zéro `any`)
+  #
+  # Next 16 injecte les helpers globaux de routes (LayoutProps, PageProps,
+  # RouteContext) via `next typegen` — ils vivent dans .next/types, absent d'un
+  # checkout frais. Génération OBLIGATOIRE avant tsc, sinon erreur
+  # "Cannot find name 'LayoutProps'" (cf. docs Next 16, upgrading guide).
   # --------------------------------------------------------------------------
   typecheck:
     name: Typecheck
@@ -49,6 +54,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Générer les types de routes (next typegen)
+        run: npx next typegen
       - run: npx tsc --noEmit
 
   # --------------------------------------------------------------------------
