@@ -1,7 +1,7 @@
 # MANGA SOCIETY — SPECIFICATION D'ARCHITECTURE
 
 > Document de référence unique pour tous les agents. Un agent qui n'a jamais parlé au client
-> doit pouvoir livrer sa feature rien qu'avec ce fichier + `supabase/schema.sql` +
+> doit pouvoir livrer sa feature rien qu'avec ce fichier + `supabase/migrations/0000_schema.sql` +
 > `types/api.ts` + `lib/config.ts`. Tout écart constaté avec la réalité du code → `HANDOFF.md`.
 >
 > Produit : site web gratuit de collection de cartes anime/manga, installable (PWA).
@@ -177,23 +177,23 @@ types/
 
 ```
 supabase/
-├── schema.sql                    # ★ Agent 0 — schéma COMPLET : 12 tables (characters,
-│                                 #   themes, profiles, user_cards, cosmetics, user_cosmetics,
-│                                 #   wishlists, quests, user_quests, drops_log,
-│                                 #   idempotency_keys, booster_openings) + contraintes
-│                                 #   (unique(character_id, print_number), checks rareté/
-│                                 #   source/type) + index (user_id+obtained_at,
-│                                 #   character_id+base_rarity, themes GIN,
-│                                 #   lower(name_romaji) trigram) + RLS deny-by-default
 ├── migrations/
-│   └── 0001_functions.sql        # ★ Agent 0 — RPC SECURITY DEFINER : open_booster,
+│   ├── 0000_schema.sql           # ★ Agent 0 — schéma COMPLET : 12 tables (characters,
+│   │                             #   themes, profiles, user_cards, cosmetics, user_cosmetics,
+│   │                             #   wishlists, quests, user_quests, drops_log,
+│   │                             #   idempotency_keys, booster_openings) + contraintes
+│   │                             #   (unique(character_id, print_number), checks rareté/
+│   │                             #   source/type) + index (user_id+obtained_at,
+│   │                             #   character_id+base_rarity, themes GIN,
+│   │                             #   lower(name_romaji) trigram) + RLS deny-by-default
+│   ├── 0001_functions.sql        # ★ Agent 0 — RPC SECURITY DEFINER : open_booster,
 │                                 #   open_premium_booster, claim_daily_pack, burn_card,
 │                                 #   update_quest_progress, claim_quests,
 │                                 #   ensure_daily_quests, update_login_streak,
 │                                 #   buy_cosmetic, apply_cosmetic, reroll_cosmetic,
 │                                 #   toggle_wishlist. Idempotentes, commentaires
-│                                 #   d'intention, pgcrypto, UNE transaction par appel.
-├── seed.sql                      # ★ Agent 0 — 6 thèmes, ~15 cosmétiques, pool de quêtes
+│   │                             #   d'intention, pgcrypto, UNE transaction par appel.
+│   └── 0002_seed.sql             # ★ Agent 0 — 6 thèmes, ~15 cosmétiques, pool de quêtes
 └── config.toml                   # timezone Europe/Paris, ports locaux — Agent 0
 ```
 
@@ -311,7 +311,7 @@ tentative de clic** côté client, jamais par session.
 | `public/packs/`, `card-back.png`, `sounds/` | — | — | — | **ÉCRITURE** | vérifie poids |
 | `assets/prompts.md` | — | — | — | **ÉCRITURE** | — |
 | `tests/**`, `scripts/sim-economy.ts` | fournit fixtures | — | — | — | **ÉCRITURE** |
-| `supabase/schema.sql`, `migrations/`, `seed.sql` | consomme (migration additive → `MIGRATIONS.md` si bug bloquant) | — | écrit via `db.ts` (upsert idempotent, jamais de DDL) | — | audit RLS |
+| `supabase/migrations/` (0000_schema, 0001_functions, 0002_seed) | consomme (migration additive → `MIGRATIONS.md` si bug bloquant) | — | écrit via `db.ts` (upsert idempotent, jamais de DDL) | — | audit RLS |
 | `lib/config.ts`, `lib/errors.ts`, `lib/validations/**`, `types/**` | lit | lit | lit | lit | lit |
 | `docs/adr/**`, `SPEC.md`, `HANDOFF.md` | lit | lit | lit | lit | lit |
 

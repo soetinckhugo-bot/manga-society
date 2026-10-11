@@ -1,7 +1,7 @@
 name: CI
 
 # Pipeline de vérification MANGA SOCIETY — rouge = pas de merge.
-# Ordre : lint → typecheck → base Supabase (schéma + fonctions + seed) → build.
+# Ordre : lint → typecheck → migrations Supabase (db reset) → build.
 
 on:
   push:
@@ -52,18 +52,16 @@ jobs:
       - run: npx tsc --noEmit
 
   # --------------------------------------------------------------------------
-  # 3. Base Supabase locale : le schéma s'applique et le seed se charge.
+  # 3. Base Supabase locale : les migrations s'appliquent proprement dans l'ordre.
   #
-  # NOTE (organisation des livrables Architecte) : ce repo ne contient PAS de
-  # supabase/config.toml et le schéma canonique vit dans supabase/schema.sql
-  # (pas une migration `0000`). `supabase db reset` n'applique donc QUE
-  # supabase/migrations/*.sql. On applique explicitement, dans l'ordre :
-  #   1. supabase/schema.sql        (tables, index, RLS, grants)
-  #   2. supabase/migrations/0001_functions.sql (RPC + trigger + GRANT EXECUTE)
-  #   3. supabase/seed.sql          (thèmes, cosmétiques, pool de quêtes)
-  # Si un jour schema.sql devient la migration 0000 et un config.toml définit
-  # seed.sql, ce job pourra être simplifié en `supabase db reset` tout court.
-  # Le CLI démarre Postgres 15 (stack Supabase locale).
+  # Le schéma vit désormais en migrations ordonnées, auto-déployables par
+  # l'intégration GitHub de Supabase :
+  #   0000_schema.sql     (tables, index, RLS, grants)
+  #   0001_functions.sql  (RPC + trigger + GRANT EXECUTE)
+  #   0002_seed.sql       (thèmes, cosmétiques, pool de quêtes)
+  # `supabase db reset` applique ce dossier dans l'ordre strict sur la stack
+  # locale (Postgres 15). Le CLI démarre la stack ; la connexion locale par
+  # défaut est postgres:postgres@127.0.0.1:54322.
   # --------------------------------------------------------------------------
   supabase:
     name: Schéma Supabase
@@ -76,12 +74,8 @@ jobs:
           version: latest
       - name: Démarrer la stack Supabase locale (Postgres 15)
         run: supabase start
-      - name: Appliquer le schéma (schema.sql)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/schema.sql
-      - name: Appliquer les migrations (0001_functions.sql)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/migrations/0001_functions.sql
-      - name: Charger le seed (seed.sql)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/seed.sql
+      - name: Appliquer les migrations (0000 → 0001 → 0002)
+        run: supabase db reset
       - name: Vérifications de cohérence minimales
         run: |
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -c "select count(*) as themes from public.themes;"

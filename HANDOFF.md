@@ -56,14 +56,14 @@ A/B/C — à produire par l'orchestrateur ou un agent de complément, dans l'ord
    'INSUFFICIENT_CHAKRA', …).
 3. `lib/validations/` — schémas Zod partagés (OpenBoosterInput, BurnInput,
    WishlistToggleInput, BuyCosmeticInput, ApplyCosmeticInput, RerollCosmeticInput).
-4. `supabase/schema.sql` — schéma complet des 12 tables + contraintes + index
+4. `supabase/migrations/0000_schema.sql` — schéma complet des 12 tables + contraintes + index
    (collection : user_id+obtained_at, character_id+base_rarity, themes GIN,
    lower(name_romaji) trigram) + RLS deny-by-default sur TOUTES les tables.
 5. `supabase/migrations/0001_functions.sql` — les 11+ RPC SECURITY DEFINER idempotentes
    (open_booster, open_premium_booster, claim_daily_pack, burn_card,
    update_quest_progress, claim_quests, ensure_daily_quests, update_login_streak,
    buy_cosmetic, apply_cosmetic, reroll_cosmetic, toggle_wishlist) + `pgcrypto`.
-6. `supabase/seed.sql` — 6 thèmes, ~15 cosmétiques, pool de quêtes.
+6. `supabase/migrations/0002_seed.sql` — 6 thèmes, ~15 cosmétiques, pool de quêtes.
 7. `types/database.ts` (types générés) + `types/api.ts` (contrats de réponse de chaque
    route : OpenBoosterResponse, BoosterStateResponse, BurnResponse, CollectionPage,
    AlbumResponse, QuestDto…).
@@ -98,6 +98,12 @@ commit trivial.
   P0/P1/P2. E ne réécrit pas les features.
 
 ## 5. Dettes / sujets laissés ouverts
+
+- **Base cloud appliquée** : les migrations ordonnées (`supabase/migrations/0000_schema.sql`,
+  `0001_functions.sql`, `0002_seed.sql`) sont poussées sur le projet cloud
+  (ref `pshtqndklfbtrjhprrua`) via `supabase db push`. Vérifié : 6 thèmes, 16 cosmétiques,
+  7 quêtes, RPC présentes, 0 personnage (import = Agent C). Les agents A/B/C peuvent coder
+  contre ce projet ; leurs clés vont dans `.env.local` (voir `.env.example`).
 
 - Choix final manifest : `public/manifest.webmanifest` (statique) vs `app/manifest.ts`
   (généré) — les deux sont listés dans `SPEC.md` §2.1 ; trancher lors de la production du
