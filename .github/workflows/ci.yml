@@ -1,0 +1,104 @@
+name: CI
+
+# Pipeline de vérification MANGA SOCIETY — rouge = pas de merge.
+# Ordre : lint → typecheck → base Supabase (schéma + fonctions + seed) → build.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Ne sert qu'au `next build` (présence des variables requises côté Next).
+  NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-ci
+  SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-ci
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+jobs:
+  # --------------------------------------------------------------------------
+  # 1. Lint ESLint (npm ci = build reproductible depuis package-lock.json)
+  # --------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  # --------------------------------------------------------------------------
+  # 2. Typecheck TypeScript strict (zéro `any`)
+  # --------------------------------------------------------------------------
+  typecheck:
+    name: Typecheck
+    needs: lint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  # --------------------------------------------------------------------------
+  # 3. Base Supabase locale : le schéma s'applique et le seed se charge.
+  #
+  # NOTE (organisation des livrables Architecte) : ce repo ne contient PAS de
+  # supabase/config.toml et le schéma canonique vit dans supabase/schema.sql
+  # (pas une migration `0000`). `supabase db reset` n'applique donc QUE
+  # supabase/migrations/*.sql. On applique explicitement, dans l'ordre :
+  #   1. supabase/schema.sql        (tables, index, RLS, grants)
+  #   2. supabase/migrations/0001_functions.sql (RPC + trigger + GRANT EXECUTE)
+  #   3. supabase/seed.sql          (thèmes, cosmétiques, pool de quêtes)
+  # Si un jour schema.sql devient la migration 0000 et un config.toml définit
+  # seed.sql, ce job pourra être simplifié en `supabase db reset` tout court.
+  # Le CLI démarre Postgres 15 (stack Supabase locale).
+  # --------------------------------------------------------------------------
+  supabase:
+    name: Schéma Supabase
+    needs: typecheck
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Démarrer la stack Supabase locale (Postgres 15)
+        run: supabase start
+      - name: Appliquer le schéma (schema.sql)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/schema.sql
+      - name: Appliquer les migrations (0001_functions.sql)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/migrations/0001_functions.sql
+      - name: Charger le seed (seed.sql)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/seed.sql
+      - name: Vérifications de cohérence minimales
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -c "select count(*) as themes from public.themes;"
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -c "select proname from pg_proc where proname = 'open_booster';"
+
+  # --------------------------------------------------------------------------
+  # 4. Build de production Next.js
+  # --------------------------------------------------------------------------
+  build:
+    name: Build
+    needs: supabase
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
