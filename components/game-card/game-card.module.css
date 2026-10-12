@@ -2,7 +2,7 @@
  * components/game-card/game-card.module.css — rendu carte définitif.
  *
  * Toutes les animations sont transform/opacity UNIQUEMENT (SPEC §9,
- * PROMPT D). Les couleurs viennent des tokens --rarity-*/--print-* de
+ * PROMPT D). Les couleurs viennent des tokens rareté/print de
  * globals.css (design system Agent B, lecture seule).
  */
 
@@ -12,7 +12,6 @@
 
 .frame {
   border-radius: var(--radius-lg, 0.75rem);
-  transition: box-shadow 300ms ease;
 }
 
 .frameCommon {
