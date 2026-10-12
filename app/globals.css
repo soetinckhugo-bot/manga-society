@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Design system MANGA SOCIETY — 100 % dark, classe .dark forcée sur <html>.
+ * Pas de media query prefers-color-scheme : le thème sombre est le produit.
+ */
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root,
+.dark {
+  /* Base "Kyara clean" : zinc profond, accent or sobre. */
+  --background: #0a0a0f;
+  --foreground: #f4f4f5; /* zinc-100 */
+  --card: #121218;
+  --card-foreground: #f4f4f5;
+  --popover: #15151c;
+  --popover-foreground: #f4f4f5;
+  --primary: #d4a94e; /* or sobre */
+  --primary-foreground: #14100a;
+  --secondary: #1d1d26;
+  --secondary-foreground: #e4e4e7;
+  --muted: #18181f;
+  --muted-foreground: #a1a1aa; /* zinc-400 */
+  --accent: #23232e;
+  --accent-foreground: #fafafa;
+  --destructive: #b3402f;
+  --destructive-foreground: #fafafa;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #d4a94e;
+  --radius: 0.75rem;
+
+  /* Tokens de rareté (codes TCG) — consommés par components/game-card/. */
+  --rarity-common: #71717a; /* zinc */
+  --rarity-uncommon: #4ade80; /* vert */
+  --rarity-rare: #60a5fa; /* bleu */
+  --rarity-epic: #a78bfa; /* violet */
+  --rarity-legendary: #d4a94e; /* or */
+  --rarity-mythic: #dc2626; /* rouge/noir */
+
+  /* Tiers visuels du badge print. */
+  --print-first: #f5d67b;
+  --print-gold: #d4a94e;
+  --print-silver: #c0c0c8;
+  --print-standard: #8b8b96;
+}
+
+@layer base {
+  * {
+    @apply border-border;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
 }

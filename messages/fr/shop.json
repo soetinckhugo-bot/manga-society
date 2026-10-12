@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "title": "Boutique"
+  },
+  "tabs": {
+    "frame": "Cadres",
+    "holo": "Holos",
+    "dye": "Teintes"
+  },
+  "empty": "Aucun cosmétique dans cette catégorie pour le moment.",
+  "price": "{count} chakra",
+  "ultraRare": "Ultra rare",
+  "owned": "Possédé",
+  "actions": {
+    "preview": "Aperçu",
+    "buy": "Acheter"
+  },
+  "preview": {
+    "title": "Aperçu en direct",
+    "description": "Sélectionne une carte de ta collection pour voir le rendu du cosmétique.",
+    "noCards": "Tu n'as pas encore de carte : ouvre des boosters pour prévisualiser tes cosmétiques.",
+    "selectCardLabel": "Carte de prévisualisation"
+  },
+  "purchaseSuccess": "{name} acheté ! Nouveau solde : {balance} chakra.",
+  "loadError": "La boutique n'a pas pu être chargée."
+}

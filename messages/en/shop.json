@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "title": "Shop"
+  },
+  "tabs": {
+    "frame": "Frames",
+    "holo": "Holos",
+    "dye": "Dyes"
+  },
+  "empty": "No cosmetic in this category yet.",
+  "price": "{count} chakra",
+  "ultraRare": "Ultra rare",
+  "owned": "Owned",
+  "actions": {
+    "preview": "Preview",
+    "buy": "Buy"
+  },
+  "preview": {
+    "title": "Live preview",
+    "description": "Pick a card from your collection to see how the cosmetic renders.",
+    "noCards": "You don't have any card yet: open boosters to preview your cosmetics.",
+    "selectCardLabel": "Preview card"
+  },
+  "purchaseSuccess": "{name} purchased! New balance: {balance} chakra.",
+  "loadError": "The shop could not be loaded."
+}

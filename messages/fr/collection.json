@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "title": "Ma collection"
+  },
+  "tabs": {
+    "grid": "Grille",
+    "album": "Album"
+  },
+  "filters": {
+    "allThemes": "Tous les thèmes",
+    "searchLabel": "Rechercher",
+    "searchPlaceholder": "Nom ou anime…",
+    "sortLabel": "Trier",
+    "sort": {
+      "recent": "Récents",
+      "rarity": "Rareté",
+      "print_number": "N° de print",
+      "name": "Nom A→Z"
+    }
+  },
+  "grid": {
+    "cardsCount": "{count} cartes",
+    "empty": "Ta collection est vide",
+    "emptyDescription": "Ouvre des boosters pour obtenir tes premières cartes.",
+    "emptySearch": "Aucune carte ne correspond à ces filtres.",
+    "loadMore": "Charger plus"
+  },
+  "album": {
+    "summaryTitle": "Progression globale",
+    "summary": "{owned} / {total} personnages",
+    "empty": "L'album est vide pour le moment."
+  },
+  "card": {
+    "obtainedLabel": "Obtenue le",
+    "sourceLabel": "Source",
+    "source": {
+      "booster": "Booster",
+      "premium": "Booster premium",
+      "daily": "Pack du jour",
+      "quest": "Quête"
+    },
+    "owners": "{count} collectionneurs possèdent ce personnage",
+    "wishlist": {
+      "add": "Ajouter à ma wishlist",
+      "remove": "Retirer de ma wishlist",
+      "added": "{name} ajouté à ta wishlist ({used}/{max})",
+      "removed": "{name} retiré de ta wishlist ({used}/{max})"
+    },
+    "burn": {
+      "button": "Brûler",
+      "confirmTitle": "Brûler cette carte ?",
+      "confirmDescription": "Action définitive : la carte disparaît de ta collection en échange de chakra.",
+      "indicative": "Valeur indicative — le montant réel est calculé par le serveur.",
+      "chakraPreview": "+{count} chakra",
+      "confirm": "Brûler définitivement",
+      "cancel": "Annuler",
+      "success": "Carte brûlée : +{count} chakra"
+    },
+    "cosmetics": {
+      "title": "Cosmétiques",
+      "slot": {
+        "frame": "Cadre",
+        "holo": "Holo",
+        "dye": "Teinte"
+      },
+      "emptySlot": "Aucun cosmétique possédé pour ce slot.",
+      "apply": "Appliquer",
+      "applied": "{name} appliqué sur la carte",
+      "current": "Actuel : {name}",
+      "none": "Aucun",
+      "reroll": "Reroll",
+      "rerolled": "Nouveau {slot} : {name}"
+    }
+  }
+}

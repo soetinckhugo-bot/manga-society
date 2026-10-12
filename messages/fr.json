@@ -1,0 +1,163 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "error": "Une erreur est survenue",
+    "retry": "Réessayer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "save": "Enregistrer",
+    "back": "Retour",
+    "search": "Rechercher",
+    "searchPlaceholder": "Rechercher…",
+    "seeAll": "Tout voir",
+    "empty": "Rien à afficher pour le moment",
+    "emptySearch": "Aucun résultat pour cette recherche",
+    "emptyGenericTitle": "C'est vide ici",
+    "emptyGenericDescription": "Reviens plus tard, du contenu arrive bientôt."
+  },
+  "nav": {
+    "boosters": "Boosters",
+    "collection": "Collection",
+    "shop": "Boutique",
+    "profile": "Profil",
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "menu": "Menu",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu",
+    "legal": {
+      "mentions": "Mentions légales",
+      "cgu": "CGU",
+      "privacy": "Confidentialité"
+    }
+  },
+  "landing": {
+    "heroTitle": "Collectionne les personnages d'anime, un print à la fois",
+    "heroSubtitle": "Manga Society est un jeu de collection de cartes gratuit : ouvre des boosters, collectionne des personnages et grave ton nom dans l'histoire de chaque print.",
+    "ctaLogin": "Commencer à collectionner",
+    "steps": {
+      "1": {
+        "title": "Rareté du personnage",
+        "description": "Chaque personnage appartient à l'un des 6 tiers de rareté, calculés sur la popularité AniList : du Commun au Mythique."
+      },
+      "2": {
+        "title": "Print Karuta",
+        "description": "Chaque carte reçoit un numéro de print gravé à l'obtention, unique par personnage et jamais recyclé. Le #1 est à jamais le premier."
+      },
+      "3": {
+        "title": "Collectionne, brûle, personnalise",
+        "description": "Complète ton album, brûle tes doublons contre du chakra et décore tes plus belles cartes avec des cadres, holos et teintes."
+      }
+    }
+  },
+  "pwa": {
+    "installBanner": {
+      "title": "Installe Manga Society sur ton appareil",
+      "install": "Installer",
+      "later": "Plus tard",
+      "ios": {
+        "open": "Comment installer",
+        "title": "Installer sur iOS",
+        "step1": "Appuie sur le bouton Partager de Safari (carré avec flèche vers le haut).",
+        "step2": "Fais défiler et sélectionne « Sur l'écran d'accueil ».",
+        "step3": "Confirme avec « Ajouter » : l'app apparaît sur ton écran d'accueil."
+      }
+    }
+  },
+  "legal": {
+    "mentions": {
+      "title": "Mentions légales",
+      "paragraphs": [
+        "Manga Society est un site gratuit de collection de cartes de personnages d'anime, accessible en ligne.",
+        "Éditeur du site : l'équipe Manga Society. Hébergement : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis.",
+        "Pour toute question, contacte l'équipe via les canaux officiels du projet."
+      ]
+    },
+    "cgu": {
+      "title": "Conditions générales d'utilisation",
+      "paragraphs": [
+        "L'utilisation de Manga Society est gratuite et réservée à un usage personnel et non commercial.",
+        "Les comptes sont nominatifs : le pseudo choisi à l'inscription est public et apparaît sur le profil.",
+        "Toute tentative de fraude, d'automatisation abusive ou de contournement des règles du jeu entraîne la suspension du compte.",
+        "L'équipe se réserve le droit de modifier les règles du jeu (raretés, économie, cadences) pour en préserver l'équilibre."
+      ]
+    },
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "paragraphs": [
+        "Données collectées : adresse e-mail (connexion par lien magique), identifiant Discord (si tu choisis cette méthode de connexion) et pseudo public.",
+        "Données de jeu : cartes obtenues, prints, progression et historique de collection sont stockées pour faire fonctionner le jeu.",
+        "Les images de personnages proviennent des API publiques AniList et Jikan (MyAnimeList).",
+        "Aucune donnée n'est vendue ni partagée avec des tiers à des fins publicitaires. Tu peux demander la suppression de ton compte à tout moment."
+      ]
+    }
+  },
+  "offline": {
+    "title": "Tu es hors ligne",
+    "description": "Manga Society a besoin d'une connexion pour charger tes cartes et ton stock de boosters. Reviens en ligne pour continuer ta collection.",
+    "backHome": "Retour à l'accueil"
+  },
+  "auth": {
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Connecte-toi pour ouvrir tes boosters et collectionner.",
+      "emailLabel": "Adresse e-mail",
+      "emailPlaceholder": "toi@exemple.com",
+      "magicLink": "Recevoir un lien magique",
+      "magicLinkPending": "Envoi en cours…",
+      "discord": "Continuer avec Discord",
+      "emailSent": "Lien envoyé ! Vérifie tes e-mails et clique sur le lien pour te connecter.",
+      "or": "ou"
+    },
+    "onboarding": {
+      "title": "Choisis ton pseudo",
+      "subtitle": "C'est le nom qui apparaîtra sur ton profil public et tes cartes.",
+      "usernameLabel": "Pseudo",
+      "usernamePlaceholder": "ex. kyara_fan",
+      "rules": "3 à 20 caractères : lettres, chiffres, tirets et underscores uniquement.",
+      "validate": "Valider",
+      "pending": "Validation…",
+      "checking": "Vérification de la disponibilité…",
+      "available": "Ce pseudo est disponible",
+      "taken": "Ce pseudo est déjà pris",
+      "invalidFormat": "Format invalide (3-20 caractères, lettres/chiffres/tiret/underscore)"
+    }
+  },
+  "game": {
+    "card": {
+      "firstOwner": "Premier propriétaire",
+      "newCharacter": "Nouveau",
+      "ownerCount": "{count} collectionneurs"
+    },
+    "boosterOpening": {
+      "title": "Booster ouvert !",
+      "goldenTitle": "Booster doré !",
+      "openAnother": "Ouvrir un autre",
+      "seeCollection": "Voir la collection"
+    }
+  },
+  "errors": {
+    "UNAUTHENTICATED": "Tu dois être connecté pour faire ça.",
+    "USERNAME_TAKEN": "Ce pseudo est déjà pris.",
+    "INVALID_USERNAME": "Ce pseudo n'est pas valide.",
+    "VALIDATION_ERROR": "Requête invalide.",
+    "RATE_LIMITED": "Tu vas trop vite, réessaie dans un instant.",
+    "NO_BOOSTER": "Tu n'as plus de booster en stock. Recharge : +1 toutes les 6 minutes.",
+    "INVALID_THEME": "Ce thème de booster n'existe pas.",
+    "NOT_ENOUGH_POINTS": "Pas assez de points premium pour ce booster.",
+    "ALREADY_CLAIMED": "Déjà réclamé aujourd'hui.",
+    "WISHLIST_FULL": "Ta wishlist est pleine (10 slots maximum).",
+    "INSUFFICIENT_CHAKRA": "Pas assez de chakra pour cette action.",
+    "NOT_OWNER": "Cette carte ne t'appartient pas.",
+    "CARD_NOT_FOUND": "Carte introuvable.",
+    "CHARACTER_NOT_FOUND": "Personnage introuvable.",
+    "COSMETIC_NOT_FOUND": "Cosmétique introuvable.",
+    "THEME_NOT_FOUND": "Thème introuvable.",
+    "QUEST_NOT_FOUND": "Quête introuvable ou inactive aujourd'hui.",
+    "COSMETIC_NOT_OWNED": "Tu ne possèdes pas ce cosmétique.",
+    "COSMETIC_SLOT_TAKEN": "Ce slot est déjà occupé sur cette carte.",
+    "INVALID_COSMETIC_TYPE": "Ce cosmétique ne correspond pas à ce slot.",
+    "INTERNAL_ERROR": "Erreur interne. Réessaie dans un moment."
+  }
+}

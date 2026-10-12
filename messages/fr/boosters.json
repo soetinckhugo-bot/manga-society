@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "Boosters"
+  },
+  "header": {
+    "title": "Ouvrir des boosters",
+    "subtitle": "Choisis un thème, ouvre ton booster et complète ta collection."
+  },
+  "state": {
+    "stock": "{count, plural, one {#/{max} booster} other {#/{max} boosters}}",
+    "stockFull": "Stock plein",
+    "rechargeIn": "+1 dans {time}",
+    "chakra": "{count} chakra",
+    "premiumPoints": "{count} points premium"
+  },
+  "themes": {
+    "title": "Choisis ton thème",
+    "empty": "Aucun thème de booster disponible pour le moment."
+  },
+  "panel": {
+    "empty": "Sélectionne un thème pour voir son contenu.",
+    "characters": "{count, plural, one {# personnage} other {# personnages}}",
+    "wishlist": "{count} de tes envies dans ce booster"
+  },
+  "rarity": {
+    "common": "Commun",
+    "uncommon": "Peu commun",
+    "rare": "Rare",
+    "epic": "Épique",
+    "legendary": "Légendaire",
+    "mythic": "Mythique"
+  },
+  "actions": {
+    "open": "Ouvrir le booster",
+    "opening": "Ouverture…",
+    "premium": "Booster premium",
+    "premiumHint": "{price} points — 1 carte Légendaire minimum",
+    "premiumDisabled": "Points premium insuffisants",
+    "noStock": "Plus de booster en stock"
+  },
+  "widgets": {
+    "pity": {
+      "title": "Garanties",
+      "legendary": "Légendaire garantie dans {count, plural, one {# ouverture} other {# ouvertures}}",
+      "mythic": "Mythique garantie dans {count, plural, one {# ouverture} other {# ouvertures}}"
+    },
+    "golden": {
+      "title": "Booster doré",
+      "progress": "{count}/{total} avant le booster doré"
+    },
+    "daily": {
+      "title": "Pack du jour",
+      "claim": "Réclamer",
+      "claimed": "Déjà réclamé",
+      "resetIn": "Retour dans {time}",
+      "empty": "Aucun pack du jour disponible aujourd'hui."
+    },
+    "quests": {
+      "title": "Quêtes du jour",
+      "claim": "Réclamer",
+      "claimed": "Réclamée",
+      "reward": "+{count} chakra",
+      "empty": "Aucune quête aujourd'hui.",
+      "success": "{count, plural, one {# chakra gagné} other {# chakra gagnés}}"
+    },
+    "streak": {
+      "title": "Connexion",
+      "current": "Jour {count}/7",
+      "day": "J{day}",
+      "chakraReward": "+{count}",
+      "cosmeticReward": "Cosmétique"
+    }
+  },
+  "boundary": {
+    "title": "Cette section n'a pas pu charger",
+    "description": "Un problème de réseau ou de serveur est survenu.",
+    "retry": "Réessayer"
+  }
+}

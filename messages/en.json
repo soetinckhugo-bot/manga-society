@@ -1,0 +1,163 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "save": "Save",
+    "back": "Back",
+    "search": "Search",
+    "searchPlaceholder": "Search…",
+    "seeAll": "See all",
+    "empty": "Nothing to show yet",
+    "emptySearch": "No results for this search",
+    "emptyGenericTitle": "It's empty here",
+    "emptyGenericDescription": "Check back later, content is on its way."
+  },
+  "nav": {
+    "boosters": "Boosters",
+    "collection": "Collection",
+    "shop": "Shop",
+    "profile": "Profile",
+    "login": "Log in",
+    "logout": "Log out",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "legal": {
+      "mentions": "Legal notice",
+      "cgu": "Terms of use",
+      "privacy": "Privacy policy"
+    }
+  },
+  "landing": {
+    "heroTitle": "Collect anime characters, one print at a time",
+    "heroSubtitle": "Manga Society is a free card-collection game: open boosters, collect characters and etch your name into the history of every print.",
+    "ctaLogin": "Start collecting",
+    "steps": {
+      "1": {
+        "title": "Character rarity",
+        "description": "Every character belongs to one of 6 rarity tiers, computed from AniList popularity: from Common to Mythic."
+      },
+      "2": {
+        "title": "Karuta print",
+        "description": "Every card gets a print number etched on drop, unique per character and never recycled. Print #1 belongs to the first owner forever."
+      },
+      "3": {
+        "title": "Collect, burn, customize",
+        "description": "Complete your album, burn duplicates for chakra and decorate your best cards with frames, holos and dyes."
+      }
+    }
+  },
+  "pwa": {
+    "installBanner": {
+      "title": "Install Manga Society on your device",
+      "install": "Install",
+      "later": "Not now",
+      "ios": {
+        "open": "How to install",
+        "title": "Install on iOS",
+        "step1": "Tap Safari's Share button (square with an upward arrow).",
+        "step2": "Scroll down and select \"Add to Home Screen\".",
+        "step3": "Confirm with \"Add\": the app now sits on your home screen."
+      }
+    }
+  },
+  "legal": {
+    "mentions": {
+      "title": "Legal notice",
+      "paragraphs": [
+        "Manga Society is a free website for collecting anime character cards, available online.",
+        "Publisher: the Manga Society team. Hosting: Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA.",
+        "For any question, reach the team through the project's official channels."
+      ]
+    },
+    "cgu": {
+      "title": "Terms of use",
+      "paragraphs": [
+        "Using Manga Society is free and restricted to personal, non-commercial use.",
+        "Accounts are personal: the username picked at sign-up is public and shown on your profile.",
+        "Any attempt to cheat, abuse automation or bypass the game rules results in account suspension.",
+        "The team may adjust the game rules (rarities, economy, cadences) to preserve balance."
+      ]
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "paragraphs": [
+        "Data collected: email address (magic-link login), Discord identifier (if you choose that login method) and public username.",
+        "Game data: obtained cards, prints, progression and collection history are stored to run the game.",
+        "Character images come from the public AniList and Jikan (MyAnimeList) APIs.",
+        "No data is sold or shared with third parties for advertising. You can request account deletion at any time."
+      ]
+    }
+  },
+  "offline": {
+    "title": "You're offline",
+    "description": "Manga Society needs a connection to load your cards and booster stock. Get back online to continue your collection.",
+    "backHome": "Back to home"
+  },
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "subtitle": "Log in to open your boosters and start collecting.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "magicLink": "Email me a magic link",
+      "magicLinkPending": "Sending…",
+      "discord": "Continue with Discord",
+      "emailSent": "Link sent! Check your emails and click the link to log in.",
+      "or": "or"
+    },
+    "onboarding": {
+      "title": "Pick your username",
+      "subtitle": "This is the name shown on your public profile and your cards.",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "e.g. kyara_fan",
+      "rules": "3 to 20 characters: letters, digits, dashes and underscores only.",
+      "validate": "Confirm",
+      "pending": "Validating…",
+      "checking": "Checking availability…",
+      "available": "This username is available",
+      "taken": "This username is already taken",
+      "invalidFormat": "Invalid format (3-20 characters, letters/digits/dash/underscore)"
+    }
+  },
+  "game": {
+    "card": {
+      "firstOwner": "First owner",
+      "newCharacter": "New",
+      "ownerCount": "{count} collectors"
+    },
+    "boosterOpening": {
+      "title": "Booster opened!",
+      "goldenTitle": "Golden booster!",
+      "openAnother": "Open another",
+      "seeCollection": "View collection"
+    }
+  },
+  "errors": {
+    "UNAUTHENTICATED": "You need to be logged in to do that.",
+    "USERNAME_TAKEN": "This username is already taken.",
+    "INVALID_USERNAME": "This username is not valid.",
+    "VALIDATION_ERROR": "Invalid request.",
+    "RATE_LIMITED": "You're going too fast, try again in a moment.",
+    "NO_BOOSTER": "You're out of boosters. Recharge: +1 every 6 minutes.",
+    "INVALID_THEME": "This booster theme doesn't exist.",
+    "NOT_ENOUGH_POINTS": "Not enough premium points for this booster.",
+    "ALREADY_CLAIMED": "Already claimed today.",
+    "WISHLIST_FULL": "Your wishlist is full (10 slots maximum).",
+    "INSUFFICIENT_CHAKRA": "Not enough chakra for this action.",
+    "NOT_OWNER": "You don't own this card.",
+    "CARD_NOT_FOUND": "Card not found.",
+    "CHARACTER_NOT_FOUND": "Character not found.",
+    "COSMETIC_NOT_FOUND": "Cosmetic not found.",
+    "THEME_NOT_FOUND": "Theme not found.",
+    "QUEST_NOT_FOUND": "Quest not found or inactive today.",
+    "COSMETIC_NOT_OWNED": "You don't own this cosmetic.",
+    "COSMETIC_SLOT_TAKEN": "This slot is already taken on this card.",
+    "INVALID_COSMETIC_TYPE": "This cosmetic doesn't match that slot.",
+    "INTERNAL_ERROR": "Internal error. Try again in a moment."
+  }
+}

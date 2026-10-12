@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "title": "Profil de {username}"
+  },
+  "notFound": {
+    "title": "Profil introuvable",
+    "description": "Ce joueur n'existe pas, ou son pseudo a changé."
+  },
+  "loadError": "Le profil n'a pas pu être chargé.",
+  "memberSince": "Membre depuis le {date}",
+  "stats": {
+    "cardsObtained": "Cartes obtenues",
+    "uniqueCharacters": "Personnages uniques",
+    "completion": "Complétion du pool",
+    "bestPrint": "Meilleur print",
+    "bestRarity": "Meilleure rareté",
+    "noCards": "Aucune carte",
+    "streak": "Série de connexion",
+    "streakDays": "J{days}"
+  },
+  "showcase": {
+    "title": "Vitrine",
+    "empty": "Ce joueur n'a pas encore mis de carte en avant."
+  },
+  "wishlist": {
+    "title": "Wishlist",
+    "empty": "Aucune envie affichée pour le moment."
+  }
+}

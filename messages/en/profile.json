@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "title": "{username}'s profile"
+  },
+  "notFound": {
+    "title": "Profile not found",
+    "description": "This player doesn't exist, or changed their username."
+  },
+  "loadError": "The profile could not be loaded.",
+  "memberSince": "Member since {date}",
+  "stats": {
+    "cardsObtained": "Cards obtained",
+    "uniqueCharacters": "Unique characters",
+    "completion": "Pool completion",
+    "bestPrint": "Best print",
+    "bestRarity": "Best rarity",
+    "noCards": "No card yet",
+    "streak": "Login streak",
+    "streakDays": "D{days}"
+  },
+  "showcase": {
+    "title": "Showcase",
+    "empty": "This player hasn't featured any card yet."
+  },
+  "wishlist": {
+    "title": "Wishlist",
+    "empty": "No wish shown for now."
+  }
+}

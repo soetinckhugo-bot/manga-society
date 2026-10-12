@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "title": "My collection"
+  },
+  "tabs": {
+    "grid": "Grid",
+    "album": "Album"
+  },
+  "filters": {
+    "allThemes": "All themes",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Name or anime…",
+    "sortLabel": "Sort",
+    "sort": {
+      "recent": "Recent",
+      "rarity": "Rarity",
+      "print_number": "Print no.",
+      "name": "Name A→Z"
+    }
+  },
+  "grid": {
+    "cardsCount": "{count} cards",
+    "empty": "Your collection is empty",
+    "emptyDescription": "Open boosters to get your first cards.",
+    "emptySearch": "No cards match these filters.",
+    "loadMore": "Load more"
+  },
+  "album": {
+    "summaryTitle": "Overall progress",
+    "summary": "{owned} / {total} characters",
+    "empty": "The album is empty for now."
+  },
+  "card": {
+    "obtainedLabel": "Obtained on",
+    "sourceLabel": "Source",
+    "source": {
+      "booster": "Booster",
+      "premium": "Premium booster",
+      "daily": "Daily pack",
+      "quest": "Quest"
+    },
+    "owners": "{count} collectors own this character",
+    "wishlist": {
+      "add": "Add to my wishlist",
+      "remove": "Remove from my wishlist",
+      "added": "{name} added to your wishlist ({used}/{max})",
+      "removed": "{name} removed from your wishlist ({used}/{max})"
+    },
+    "burn": {
+      "button": "Burn",
+      "confirmTitle": "Burn this card?",
+      "confirmDescription": "This is permanent: the card leaves your collection in exchange for chakra.",
+      "indicative": "Indicative value — the actual amount is calculated by the server.",
+      "chakraPreview": "+{count} chakra",
+      "confirm": "Burn permanently",
+      "cancel": "Cancel",
+      "success": "Card burned: +{count} chakra"
+    },
+    "cosmetics": {
+      "title": "Cosmetics",
+      "slot": {
+        "frame": "Frame",
+        "holo": "Holo",
+        "dye": "Dye"
+      },
+      "emptySlot": "No owned cosmetic for this slot.",
+      "apply": "Apply",
+      "applied": "{name} applied to the card",
+      "current": "Current: {name}",
+      "none": "None",
+      "reroll": "Reroll",
+      "rerolled": "New {slot}: {name}"
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "Boosters"
+  },
+  "header": {
+    "title": "Open boosters",
+    "subtitle": "Pick a theme, open your booster and grow your collection."
+  },
+  "state": {
+    "stock": "{count, plural, one {#/{max} booster} other {#/{max} boosters}}",
+    "stockFull": "Stock full",
+    "rechargeIn": "+1 in {time}",
+    "chakra": "{count} chakra",
+    "premiumPoints": "{count} premium points"
+  },
+  "themes": {
+    "title": "Pick your theme",
+    "empty": "No booster theme available right now."
+  },
+  "panel": {
+    "empty": "Select a theme to see its contents.",
+    "characters": "{count, plural, one {# character} other {# characters}}",
+    "wishlist": "{count} of your wishlist characters in this booster"
+  },
+  "rarity": {
+    "common": "Common",
+    "uncommon": "Uncommon",
+    "rare": "Rare",
+    "epic": "Epic",
+    "legendary": "Legendary",
+    "mythic": "Mythic"
+  },
+  "actions": {
+    "open": "Open booster",
+    "opening": "Opening…",
+    "premium": "Premium booster",
+    "premiumHint": "{price} points — at least 1 Legendary card",
+    "premiumDisabled": "Not enough premium points",
+    "noStock": "No booster left in stock"
+  },
+  "widgets": {
+    "pity": {
+      "title": "Guarantees",
+      "legendary": "Legendary guaranteed within {count, plural, one {# opening} other {# openings}}",
+      "mythic": "Mythic guaranteed within {count, plural, one {# opening} other {# openings}}"
+    },
+    "golden": {
+      "title": "Golden booster",
+      "progress": "{count}/{total} until the golden booster"
+    },
+    "daily": {
+      "title": "Daily pack",
+      "claim": "Claim",
+      "claimed": "Already claimed",
+      "resetIn": "Back in {time}",
+      "empty": "No daily pack available today."
+    },
+    "quests": {
+      "title": "Daily quests",
+      "claim": "Claim",
+      "claimed": "Claimed",
+      "reward": "+{count} chakra",
+      "empty": "No quest today.",
+      "success": "{count, plural, one {# chakra earned} other {# chakra earned}}"
+    },
+    "streak": {
+      "title": "Login streak",
+      "current": "Day {count}/7",
+      "day": "D{day}",
+      "chakraReward": "+{count}",
+      "cosmeticReward": "Cosmetic"
+    }
+  },
+  "boundary": {
+    "title": "This section failed to load",
+    "description": "A network or server issue occurred.",
+    "retry": "Retry"
+  }
+}
