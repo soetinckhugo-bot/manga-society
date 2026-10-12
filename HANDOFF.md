@@ -614,12 +614,58 @@ les pages sont sous préfixe de locale).
 - **Agent 0** : E-01 → E-08 sont tous en migrations/RPC/seeds — priorité E-01
   avant toute ouverture du cloud à des vrais joueurs. Les `it.fails` des tests E
   passent au rouge quand le trou est corrigé (c'est leur rôle : les basculer en
-  attendu fait partie du fix).
+  attendu fait partie du fix). Registre owner/fichier racine : QA_REPORT.md.
 - **Agent A** : la couverture smoke de `get_public_profile` ne teste que le 404
   (E-07 a filtré) ; ajouter un cas avec cartes une fois 0 corrigé.
 - **Agent B** : E-09 (CSP prod), E-10 (.env.example).
 - **Tous** : ne pas « réparer » les `it.fails` en les supprimant — chacun
   référence un trou documenté dans QA_REPORT.md.
+
+## Les 41 tests skippés localement — attendus au premier run CI
+
+Ils sont skippés ici par garde (`tests/helpers.ts` refuse tout run DB hors
+Supabase local) ; le job `supabase` de la CI démarre la stack locale puis lance
+`npm run test`, donc **leur premier exécution réelle sera le run CI de la PR
+agent/qa**. Attendu : les 3 `it.fails` AUTHZ (E-01) et les `it.fails` E-02/E-03/
+E-05/E-06 passent (le trou y est encore) ; tout le reste passe au vert.
+
+- `scripts/smoke-engine.test.ts` (8 — Agent A, déjà verts en CI) : prints
+  dupliqués ×10 users parallèles ; idempotence clé ×3 ; pity L 25 ; pity M 200 ;
+  doré toutes les 10 ; daily 1/j Épique+ idempotent ; premium 10 pts 85/15 ;
+  burn ownership/crédit/idempotence.
+- `tests/rls-audit.test.ts` (16 — exécutés sur cloud pendant l'audit, premier
+  run local en CI) : 12 tests d'isolation table par table + readbacks ;
+  **`it.fails` « get_public_profile fonctionne » (E-07)** ; **`it.fails` ×3
+  AUTHZ open_booster / toggle_wishlist / set_username cross-user (E-01)**.
+- `tests/economy.business.test.ts` (13 — jamais exécutés) : streak J1→J6 vs
+  config, no-op même jour, reset après trou, J7 cosmétique ; **`it.fails` cap
+  wishlist (E-02)** ; toggle wishlist couple wishlist_count ; points premium
+  frontières 99→104 / 195→200 ; doré cross-type au 10e ; pity L reset visible ;
+  **`it.fails` obtain_epic_plus daily (E-05)** ; claim_quests idempotent ;
+  **`it.fails` double achat cosmétique (E-04)** ; reroll sans cosmétique.
+- `tests/concurrency.test.ts` (4 — jamais exécutés) : burn pendant ouvertures
+  parallèles ; même idempotency_key ×5 = 1 débit ; pool d'1 perso = 40 prints
+  distincts ; recharge jamais < 0.
+
+## Statut fixtures cloud (72 personnages)
+
+Physiquement présents sur le cloud, **neutralisés** (`themes = []` → hors pool
+de tirage, inoffensifs pour l'économie), non supprimés car 0006 ne grante pas
+DELETE sur `characters` au service_role (E-08). Purge physique = décision Agent 0
+(hotfix 0008). Les 2 users de test, eux, sont supprimés (purge re-verifiée en
+fin de passe).
+
+## Perf séquence D — procédure et statut
+
+Definition of Done perf confiée à E par la section D (HANDOFF.md lignes
+511-529) : **non mesurée sur ce poste** (pas de Chrome DevTools dans cet
+environnement). Procédure à exécuter telle quelle au prochain poste équipé —
+`npm run build && npm start`, `/fr/boosters`, DevTools → Performance, Fast 4G +
+CPU 4× + Disable cache ; 3 scénarios (nominal ~20-25 s, Échap→récap, reveal
+Mythique) ; **DoD : frame drops < 5 %** sur les 3, et plat sous
+`prefers-reduced-motion: reduce`. Points de vigilance si rouge : blur halo/rays,
+canvas particules (< 300 nœuds, DPR ≤ 2), `backdrop-blur` de l'overlay.
+Reportée à la V1.1 (re-audit E) ou à l'orchestrateur.
 
 ## Vérifications effectuées
 
