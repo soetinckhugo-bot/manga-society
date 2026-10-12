@@ -5,27 +5,30 @@ import { routing } from '@/lib/i18n/routing';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * GET /auth/callback — route handler SANS préfixe de locale (Supabase OAuth /
- * magic link y reviennent tel quel depuis n'importe quelle locale).
+ * GET /{locale}/auth/callback — callback auth SOUS le préfixe de locale.
+ *
+ * Pourquoi cette adresse et pas /auth/callback : le proxy i18n rebascule
+ * toute URL non préfixée vers sa forme canonique /fr/…|/en/… (localePrefix
+ * 'always'). Supabase revient donc TOUJOURS ici après un magic link ou
+ * OAuth, même si emailRedirectTo pointait sans préfixe.
  *
  * 1. Échange du `code` contre une session (cookies auth écrits).
  * 2. Hook de login streak, best-effort (silencieux en cas d'échec — le jeu
  *    reste utilisable, le streak se rattrape au login suivant).
  * 3. Profil sans username → /{locale}/onboarding ; sinon /{locale}.
- *
- * La locale de retour est portée par le param `?locale=` ajouté côté page
- * /login au `emailRedirectTo` / `redirectTo` (méthode simple et fiable,
- * aucun cookie supplémentaire).
  */
 
-export async function GET(request: Request) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get('code');
-
-  const requestedLocale = requestUrl.searchParams.get('locale');
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ locale: string }> },
+) {
+  const { locale: requestedLocale } = await params;
   const locale = hasLocale(routing.locales, requestedLocale)
     ? requestedLocale
     : routing.defaultLocale;
+
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get('code');
 
   if (!code) {
     redirect(`/${locale}/login`);

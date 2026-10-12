@@ -13,5 +13,13 @@ export function createClient() {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        // PKCE : le magic link / OAuth reviennent avec un `?code=` échangé
+        // côté serveur dans app/[locale]/auth/callback (le flow « implicit »
+        // repose sur un #fragment que le route handler ne verrait jamais).
+        flowType: 'pkce',
+      },
+    },
   );
 }

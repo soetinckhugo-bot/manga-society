@@ -158,6 +158,17 @@
     "COSMETIC_NOT_OWNED": "Tu ne possèdes pas ce cosmétique.",
     "COSMETIC_SLOT_TAKEN": "Ce slot est déjà occupé sur cette carte.",
     "INVALID_COSMETIC_TYPE": "Ce cosmétique ne correspond pas à ce slot.",
-    "INTERNAL_ERROR": "Erreur interne. Réessaie dans un moment."
+    "INTERNAL_ERROR": "Erreur interne. Réessaie dans un moment.",
+    "errorPage": {
+      "title": "Quelque chose s'est cassé",
+      "description": "Une erreur inattendue est survenue. Réessaie — si ça persiste, passe par le rapport de bug.",
+      "retry": "Réessayer",
+      "backHome": "Retour à l'accueil"
+    },
+    "notFound": {
+      "title": "Page introuvable",
+      "description": "Cette page n'existe pas ou a été déplacée.",
+      "backHome": "Retour à l'accueil"
+    }
   }
 }

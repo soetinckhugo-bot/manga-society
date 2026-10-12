@@ -158,6 +158,17 @@
     "COSMETIC_NOT_OWNED": "You don't own this cosmetic.",
     "COSMETIC_SLOT_TAKEN": "This slot is already taken on this card.",
     "INVALID_COSMETIC_TYPE": "This cosmetic doesn't match that slot.",
-    "INTERNAL_ERROR": "Internal error. Try again in a moment."
+    "INTERNAL_ERROR": "Internal error. Try again in a moment.",
+    "errorPage": {
+      "title": "Something broke",
+      "description": "An unexpected error occurred. Try again — if it persists, file a bug report.",
+      "retry": "Retry",
+      "backHome": "Back to home"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "This page doesn't exist or has been moved.",
+      "backHome": "Back to home"
+    }
   }
 }

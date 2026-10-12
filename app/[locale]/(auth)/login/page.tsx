@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/input';
 /**
  * /login — magic link email + Discord OAuth.
  * AUCUNE logique d'économie ici : simple délégation à Supabase Auth.
- * Le callback (sans préfixe de locale) est `/auth/callback` ; la locale
- * courante est transmise en query pour retrouver la bonne URL de retour.
+ * Le callback vit sous le préfixe de locale : `/{locale}/auth/callback`
+ * (le proxy i18n rebascule toute URL non préfixée vers cette forme).
  */
 
 function ErrorMessage({ code }: { code: string }) {
@@ -32,7 +32,7 @@ export default function LoginPage() {
 
   // Calculé dans les handlers : `window` n'existe pas au prerender statique.
   const getCallbackUrl = () =>
-    `${window.location.origin}/auth/callback?locale=${locale}`;
+    `${window.location.origin}/${locale}/auth/callback`;
 
   const handleMagicLink = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
