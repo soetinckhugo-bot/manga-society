@@ -14,7 +14,7 @@
 | Niveau | Count | Détails |
 |---|---:|---|
 | P0 | 1 | E-01 |
-| P1 | 5 | E-02, E-03, E-04, E-07, E-08 |
+| P1 | 6 | E-02, E-03, E-04, E-07, E-08, E-11 |
 | P2 | 5 | E-05, E-06, E-09, E-10, économie (puits) |
 
 Le socle est sain (RNG, RLS tables, auth routes, idempotence, i18n — voir fin).
@@ -35,6 +35,7 @@ fichier où le fix doit vivre — **hotfix groupé attendu côté Agent 0 (migra
 | E-04 | P1 | Agent 0 | `supabase/migrations/0001_functions.sql:1025` — `buy_cosmetic` (vérifier l'ownership avant le débit ou restaurer sur conflit) |
 | E-07 | P1 | Agent 0 | `supabase/migrations/0007_profile_rpcs.sql` — `get_public_profile` (joindre `characters.base_rarity` au lieu de `uc.rarity`) |
 | E-08 | P1 | Agent 0 | `supabase/migrations/0006_service_role_grants.sql` — grants service_role explicités table par table (bloque aussi la purge des fixtures, voir Limites) |
+| E-11 | P1 | Orchestrateur / Agent 0 | `.github/workflows/ci.yml` — step « Clé service role » : garde `[ -n "$KEY" ] \|\| exit 1` + format de sortie du CLI à vérifier |
 
 Les `it.fails` des tests E passent au rouge quand le fix correspondant est déployé :
 c'est le signal de « trou comblé », à basculer en assertion normale par le
@@ -104,6 +105,23 @@ propriétaire du fix (pas en les supprimant).
   seed manquant — cosmetics 16, quests 7 bien présents).
 - **Propriétaire** : Agent 0 (migration de grants, à calibrer : le service_role ne
   devrait avoir QUE les grants dont les scripts ont besoin, explicitement listés).
+
+### E-11 — La CI n'exécute jamais les tests DB : clé service role écrite vide, skip silencieux (découvert au run de la PR agent/qa)
+
+- **Preuve** : run CI `38268778445` (job « Schéma Supabase ») — le step
+  « Clé service role du Supabase local » écrit `SUPABASE_SERVICE_ROLE_KEY=`
+  **vide** dans `GITHUB_ENV` (`supabase status -o env | grep '^SUPABASE_SERVICE_ROLE_KEY='`
+  ne matche rien et écrase le placeholder du workflow). Résultat : `IS_CONFIGURED=false`
+  → les 4 fichiers DB sautent en silence en CI (`Test Files 4 passed | 4 skipped`,
+  `Tests 60 passed | 41 skipped`) — smoke-engine (8, Agent A) inclus. **La CI était
+  verte sans couverture DB depuis le début** ; c'est l'écho exact d'E-08 côté
+  intégration continue.
+- **Fix proposé** : (1) garde dans le step — `KEY=$(supabase status -o env | …) ;
+  [ -n "$KEY" ] || exit 1` → run rouge au lieu de skip ; (2) vérifier le format
+  de sortie du CLI (`-o json` si le format `env` a changé) ; (3) optionnel : canary
+  vitest qui échoue si `CI` + cible locale + 0 test DB exécuté.
+- **Propriétaire** : orchestrateur / Agent 0 (`.github/workflows/ci.yml` — fichier
+  d'infrastructure, hors périmètres d'écriture des agents).
 
 ## P2
 
