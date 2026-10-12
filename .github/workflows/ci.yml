@@ -1,7 +1,7 @@
 name: CI
 
 # Pipeline de vérification MANGA SOCIETY — rouge = pas de merge.
-# Ordre : lint → typecheck → migrations Supabase (db reset) → build.
+# Ordre : lint → typecheck → migrations Supabase (db reset) + npm run test → build.
 
 on:
   push:
@@ -81,19 +81,48 @@ jobs:
           version: latest
       - name: Démarrer la stack Supabase locale (Postgres 15)
         run: supabase start
-      - name: Appliquer les migrations (0000 → 0007)
+      - name: Appliquer les migrations (0000 → 0008)
         run: supabase db reset
-      - name: Clé service role du Supabase local
-        # Les smoke tests s'authentifient contre le Supabase LOCAL du runner
-        # (SPEC §8 : jamais le cloud). La clé du bloc env est un placeholder.
+      - name: Clés service role + anon du Supabase local
+        # Les tests s'authentifient contre le Supabase LOCAL du runner
+        # (SPEC §8 : jamais le cloud). Les clés du bloc env sont des
+        # placeholders. NE PAS utiliser `supabase status -o env` pour les
+        # extraire : la sortie peut être vide (services partiels) et écraser
+        # les vars avec du VIDE → tests DB skippés silencieusement et CI
+        # verte trompeuse (trouvé en hotfix, cf. QA_REPORT E-11). La stack
+        # locale n'ayant PAS de jwt_secret custom (supabase/config.toml),
+        # ses clés sont les JWT démo standards — valeurs publiques non
+        # secrètes. Si un jwt_secret custom est ajouté un jour, échoue fort
+        # ici plutôt que de skipper :
         run: |
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SUPABASE_SERVICE_ROLE_KEY=' | cut -d '=' -f2-)" >> "$GITHUB_ENV"
+          {
+            echo "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+          } >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm ci
       - name: Tests
-        run: npm ci && npm run test
+        run: |
+          # pipefail : sans lui, `vitest not found` (exit 127) est avalé par
+          # le pipe vers tee et le step passe au vert (trouvé en hotfix, cf.
+          # QA_REPORT E-11) — la CI était verte SANS exécuter un seul test.
+          set -o pipefail
+          npm run test 2>&1 | tee /tmp/vitest.raw.log
+          # Retrait des codes ANSI de vitest (sinon les grep ci-dessous ne
+          # matchent jamais — appris à la dure : garde trop stricte = run
+          # rouge alors que 108/108 tests passaient).
+          sed -e 's/\x1b\[[0-9;]*m//g' /tmp/vitest.raw.log > /tmp/vitest.log
+          # Garde de non-exécution : vitest doit avoir produit un récap.
+          grep -E 'Test Files .*passed' /tmp/vitest.log || { echo "::error::vitest n'a produit aucun récap — tests non exécutés"; exit 1; }
+          # Anti skip silencieux (E-11) : un test DB skippé = CI verte
+          # trompeuse. Tout fichier DB/sketch en "skipped" fait échouer le job.
+          if grep -E '(tests/concurrency|tests/economy\.business|tests/rls-audit|scripts/smoke-engine)\S* .*[0-9]+ skipped' /tmp/vitest.log; then
+            echo "::error::Tests DB skippés — clés/env manquants, cf. étape précédente"
+            exit 1
+          fi
       - name: Vérifications de cohérence minimales
         run: |
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -c "select count(*) as themes from public.themes;"

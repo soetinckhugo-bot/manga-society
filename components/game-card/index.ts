@@ -1,9 +1,10 @@
 /**
- * components/game-card/ — POINT D'ENTRÉE UNIQUE du rendu carte (Agent D).
+ * components/game-card/ — POINT D'ENTRÉE UNIQUE du rendu carte.
  *
- * Contrat B↔D : props publiques (`GameCardProps`, `GameCardVariant`) et
- * export unique — NE PAS changer la signature. Tout rendu carte de l'app
- * passe par ici (SPEC §4 règle 6).
+ * PLACEHOLDER AGENT B — l'Agent D remplace le contenu interne par le rendu
+ * définitif (ratio TCG, cadre rareté animé, badge print, overlays css_config).
+ * Les props publiques (`GameCardProps`, `GameCardVariant`) et cet export
+ * unique sont le contrat B↔D : NE PAS changer la signature.
  */
 export { GameCard } from './game-card';
 export type { GameCardProps, GameCardVariant } from './game-card';

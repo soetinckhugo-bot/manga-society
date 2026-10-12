@@ -152,3 +152,66 @@ recalcul des raretés). Aucune colonne économique ouverte : `print_count` /
 
 **Application** : `supabase db push` (cloud, projet lié). À faire valider par
 l'Agent 0 en review.
+
+
+## 0008_hotfix_preprod.sql — Hotfix pré-prod groupé : sécurité RPC + économie + cloud + CI (Agent 0)
+
+**Motif (blocage de déploiement V1)** : l'audit QA d'E (41 tests, cf.
+`QA_REPORT.md` + addendum Agent 0) a établi un trou P0 (aucune garde
+`auth.uid()` sur les RPC `p_user`) et 5 P1/P2 (cap wishlist absent, drift
+streak vs `lib/config.ts`, double débit cosmétique, `get_public_profile` planté,
+grants service_role incomplets). De plus, deux bugs pré-existants 0001 n'ont
+été exécutés pour la première fois qu'avec ces tests (jamais de run DB avant la
+CI, pas de Docker chez E) : vol de booster par `due` négatif et `burn_card`
+cassé (alias `c.base_rarity` sur `user_cards`).
+
+**Contenu (additif strict, 0001 jamais éditée en place ; commentaires
+d'intention ; valeurs d'équilibrage UNIQUEMENT en paramètres SQL DEFAULT
+alignés sur `lib/config.ts`)** :
+
+1. **Garde E-01** : helper `_assert_self(uuid)`
+   (`if auth.uid() is not null and p_user <> auth.uid() then raise 'FORBIDDEN'`)
+   en tête des 21 RPC publiques prenant `p_user` (12×0001 + 7×0003 +
+   `set_username`/`set_showcase`). `auth.uid() is null` ⇒ service_role,
+   smoke engine et simulations passent. `_lock_characters_sorted(uuid[])`
+   (verrouillage trié anti-deadlock AB-BA sur `characters`).
+2. **Verrou de tête `profiles … for update` AVANT `_idempotency_begin`** dans
+   toutes les mutations (anti-deadlock 40P01 : la FK `idempotency_keys →
+   profiles` prend un KEY SHARE incompatible avec le FOR UPDATE de la
+   recharge — trou pré-existant 0001, mortel sous ≥ 15 appels parallèles).
+3. **E-02** `toggle_wishlist` : `p_max_slots int default 10`, cap réel,
+   `WISHLIST_FULL` avant toute écriture, toggle off toujours permis.
+   **E-03** `update_login_streak` : `p_chakra_by_day int[] default
+   '{20,25,30,40,50,65,0}'` + `p_cosmetic_reward_day int default 7` (plateau
+   `least(streak, jour-1)`). **E-04** `buy_cosmetic` : `ALREADY_OWNED` avant
+   débit + lock advisory ; `reroll_cosmetic` : `EMPTY_POOL` avant débit +
+   exclusion de l'inventaire. **E-05** `claim_daily_pack` progresse
+   `obtain_epic_plus`. **E-07** `get_public_profile` : jointure
+   `characters.base_rarity`. `drop function` des anciennes signatures non
+   gardées (`toggle_wishlist(uuid,uuid)`, `update_login_streak(uuid)`).
+4. **Fix `due` négatif** (vol de booster, pré-existant 0001) :
+   `greatest(0, floor(extract(epoch from (now() - last_booster_recharge)) /
+   360.0))` — `now()` figé par transaction peut être antérieur au
+   `last_booster_recharge` posé par une recharge concurrente → `floor = -1`
+   volait un booster et reculait l'horodatage de 6 min (1 `NO_BOOSTER`
+   aléatoire sous 10 opens parallèles à stock pile).
+5. **Fix `burn_card`** (cassé depuis 0001) : `ch.base_rarity` (la rareté vit
+   sur `characters` ; l'alias 0001 levait 42703 à chaque appel).
+6. **E-08** : grants TABLE service_role minimal, recensé depuis les scripts
+   (`profiles` S/I/U, `characters` +DELETE — purge physique des fixtures QA
+   validée par l'orchestrateur, `themes` S/I/U/D, `user_quests` S/I/U/D,
+   SELECT `user_cards`/`wishlists`/`user_cosmetics`/`cosmetics`/`quests`/
+   `drops_log`). Aucune économie ouverte en écriture hors RPC.
+7. **CI** : `npm run test` ajouté au job supabase (vraie clé anon locale
+   extraite de `supabase status` pour les sign-ins RLS).
+
+**Application** : `supabase db push` (cloud) après `migration repair
+--status reverted 0008` (deux amendements itératifs — le fichier local est la
+vérité, le cloud a été ramené à l'identique ; `migration list` = 0000→0008
+aligné des deux côtés).
+
+**Vérifié sur le cloud** (juge complet = CI locale, ces tests n'ayant jamais
+tourné sous Docker) : concurrence 4/4 ×2, rls-audit 17/17 (attaque d'E
+rejouée — 16 RPC cross-user `FORBIDDEN`, état de B inchangé),
+economy.business 14/14, rng.property + config-drift 33/33. Détail et
+justifications des corrections de tests dans `QA_REPORT.md` (addendum Agent 0).

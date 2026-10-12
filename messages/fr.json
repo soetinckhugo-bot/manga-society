@@ -139,6 +139,7 @@
   },
   "errors": {
     "UNAUTHENTICATED": "Tu dois être connecté pour faire ça.",
+    "FORBIDDEN": "Tu ne peux agir que sur ton propre compte.",
     "USERNAME_TAKEN": "Ce pseudo est déjà pris.",
     "INVALID_USERNAME": "Ce pseudo n'est pas valide.",
     "VALIDATION_ERROR": "Requête invalide.",
@@ -156,6 +157,7 @@
     "THEME_NOT_FOUND": "Thème introuvable.",
     "QUEST_NOT_FOUND": "Quête introuvable ou inactive aujourd'hui.",
     "COSMETIC_NOT_OWNED": "Tu ne possèdes pas ce cosmétique.",
+    "ALREADY_OWNED": "Tu possèdes déjà ce cosmétique.",
     "COSMETIC_SLOT_TAKEN": "Ce slot est déjà occupé sur cette carte.",
     "INVALID_COSMETIC_TYPE": "Ce cosmétique ne correspond pas à ce slot.",
     "INTERNAL_ERROR": "Erreur interne. Réessaie dans un moment.",

@@ -119,6 +119,10 @@ const RPC_DIRECT_MAP: Record<string, AppErrorCode> = {
   INVALID_USERNAME: 'INVALID_USERNAME',
   PROFILE_NOT_FOUND: 'PROFILE_NOT_FOUND',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
+  // Garde E-01 (migration 0008) : JWT user agissant pour un autre compte.
+  FORBIDDEN: 'FORBIDDEN',
+  // E-04 (migration 0008) : rachat d'un cosmétique déjà possédé.
+  ALREADY_OWNED: 'ALREADY_OWNED',
 };
 
 export interface MappedError {

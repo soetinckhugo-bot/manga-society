@@ -12,6 +12,10 @@ export const APP_ERROR_CODES = [
   // --- Auth / session ---
   /** Utilisateur non authentifié ou session expirée (401). */
   'UNAUTHENTICATED',
+  /** Un JWT utilisateur ne peut agir que pour son propre compte (403). Levé
+   *  par la garde E-01 des RPC (0008) — les appels service_role (auth.uid()
+   *  NULL, scripts) ne passent jamais ici. */
+  'FORBIDDEN',
   /** Username déjà pris (citext unique) lors du choix du pseudo (409). */
   'USERNAME_TAKEN',
   /** Username invalide (format longueur/caractères) (422). */
@@ -55,6 +59,9 @@ export const APP_ERROR_CODES = [
   'QUEST_NOT_FOUND',
 
   // --- Cosmétiques ---
+  /** Achat d'un cosmétique que le joueur possède déjà (409). Levé AVANT tout
+   *  débit par buy_cosmetic (0008, E-04) : le rachat ne débite plus. */
+  'ALREADY_OWNED',
   /** Achat d'un cosmétique que le joueur ne possède pas (409). */
   'COSMETIC_NOT_OWNED',
   /** Slot déjà occupé sur la carte (une seule instance par type par carte) (409). */
@@ -82,6 +89,7 @@ export function isAppErrorCode(value: string): value is AppErrorCode {
  */
 export const ERROR_HTTP_STATUS: Record<AppErrorCode, number> = {
   UNAUTHENTICATED: 401,
+  FORBIDDEN: 403,
   USERNAME_TAKEN: 409,
   INVALID_USERNAME: 422,
   PROFILE_NOT_FOUND: 404,
@@ -100,6 +108,7 @@ export const ERROR_HTTP_STATUS: Record<AppErrorCode, number> = {
   THEME_NOT_FOUND: 404,
   QUEST_NOT_FOUND: 404,
   COSMETIC_NOT_OWNED: 409,
+  ALREADY_OWNED: 409,
   COSMETIC_SLOT_TAKEN: 409,
   INVALID_COSMETIC_TYPE: 422,
   INTERNAL_ERROR: 500,
