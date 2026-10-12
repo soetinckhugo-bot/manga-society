@@ -596,6 +596,12 @@ les pages sont sous préfixe de locale).
 - **P1 — E-08** : grants service_role du cloud limités à `characters` (0006) —
   les scripts hors RPC (dev-seed, refill smoke) cassent en prod alors que le
   local passe tout (CI localement verte). **Agent 0** (grants explicités).
+- **P1 — E-11** : la CI **n'exécute jamais les tests DB** — le step « Clé service
+  role » écrit `SUPABASE_SERVICE_ROLE_KEY` **vide** dans GITHUB_ENV (run
+  38268778445, job « Schéma Supabase ») → 41 tests skippés en silence, y compris
+  le smoke-engine de A (CI verte sans couverture DB depuis le début). Fix :
+  garde `[ -n "$KEY" ] || exit 1` + vérifier le format `supabase status -o env`.
+  **Orchestrateur/Agent 0** (`.github/workflows/ci.yml`, hors périmètres agents).
 - **P2 — E-05** : daily pack sans progression `obtain_epic_plus`. **Agent 0**.
 - **P2 — E-06** : booster MIX toujours non câblé (thème `mix` absent du seed,
   pas de branche RPC) — décision V1 de C en suspens, asset D prêt. **Agent 0**.
@@ -618,6 +624,9 @@ les pages sont sous préfixe de locale).
 - **Agent A** : la couverture smoke de `get_public_profile` ne teste que le 404
   (E-07 a filtré) ; ajouter un cas avec cartes une fois 0 corrigé.
 - **Agent B** : E-09 (CSP prod), E-10 (.env.example).
+- **Orchestrateur/Agent 0** : E-11 (ci.yml — clé service role vide → tests DB
+  jamais exécutés en CI ; ajouter la garde qui rend le run rouge au lieu de
+  skipper, puis le premier vrai run des 41 tests aura lieu).
 - **Tous** : ne pas « réparer » les `it.fails` en les supprimant — chacun
   référence un trou documenté dans QA_REPORT.md.
 
@@ -625,8 +634,12 @@ les pages sont sous préfixe de locale).
 
 Ils sont skippés ici par garde (`tests/helpers.ts` refuse tout run DB hors
 Supabase local) ; le job `supabase` de la CI démarre la stack locale puis lance
-`npm run test`, donc **leur premier exécution réelle sera le run CI de la PR
-agent/qa**. Attendu : les 3 `it.fails` AUTHZ (E-01) et les `it.fails` E-02/E-03/
+`npm run test`. **Mise à jour post-run (E-11)** : le run CI de la PR a aussi
+skippé les 41 — le step « Clé service role » écrit la variable **vide** dans
+GITHUB_ENV (`supabase status -o env` ne matche pas), donc `IS_CONFIGURED=false`.
+Le smoke-engine de A sautait pareil : la CI était verte sans couverture DB.
+Le premier run réel attend le fix CI (Agent 0/orchestrateur, QA_REPORT.md E-11).
+Attendu ensuite : les 3 `it.fails` AUTHZ (E-01) et les `it.fails` E-02/E-03/
 E-05/E-06 passent (le trou y est encore) ; tout le reste passe au vert.
 
 - `scripts/smoke-engine.test.ts` (8 — Agent A, déjà verts en CI) : prints
