@@ -69,18 +69,14 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4">
-        <Link
-          href="/"
-          aria-label="Manga Society"
-          className="shrink-0 overflow-hidden rounded-md border border-border"
-        >
-          {/* Logo officiel (public/brand/logo.png) : fond papier affiché
-              tel quel dans un cadre arrondi. */}
+        <Link href="/" aria-label="Manga Society" className="shrink-0">
+          {/* Wordmark blanc sur transparent (public/brand/logo.png) : posé
+              directement sur le fond sombre, sans cadre. */}
           <Image
             src="/brand/logo.png"
             alt="Manga Society"
-            width={86}
-            height={36}
+            width={653}
+            height={263}
             priority
             className="h-9 w-auto"
           />
