@@ -416,10 +416,12 @@ signatures provisoires)** :
 provisoire (client serveur + middleware updateSession). A peut l'aligner
 avec `lib/server/` ou la consommer — décision à prendre, ne pas dupliquer.
 
-**Pour l'Agent D** : remplacer les deux placeholders (game-card,
-booster-opening) — contrats de props exacts ci-dessus. Tout rendu carte
-actuel passe déjà par `GameCard`. Les sons/particules/60fps de la séquence
-sont à implémenter dans `booster-opening/`.
+**Pour l'Agent D** : référence visuelle dans `design-reference/` —
+**consulter ces screenshots AVANT tout travail visuel** (convention de
+nommage dans `design-reference/README.md`). Remplacer les deux placeholders
+(game-card, booster-opening) — contrats de props exacts ci-dessus. Tout
+rendu carte actuel passe déjà par `GameCard`. Les sons/particules/60fps de
+la séquence sont à implémenter dans `booster-opening/`.
 
 **Pour l'Agent E (audit)** : CSP en dev inclut `'unsafe-eval'` (HMR
 turbopack) — headers appliqués aussi en dev par simplicité ; à auditer.
