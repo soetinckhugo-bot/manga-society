@@ -285,10 +285,17 @@ describe.skipIf(!IS_CONFIGURED)('smoke-engine — intégrité économique (Supab
     expect(results).toHaveLength(USER_COUNT);
     for (const r of results) expect(r.cards).toHaveLength(5);
 
-    // 0 print dupliqué (GLOBAl, tous users confondus — filet ultime).
+    // 0 print dupliqué sur LES 50 CARTES DU TEST. Le filtre user est
+    // obligatoire : les autres fichiers de test tournent en parallèle
+    // (forks vitest) et insèrent leurs propres cartes dans la même fenêtre
+    // temporelle — sans ce filtre le compte global dépend des autres workers
+    // (échec CI 2026-10-12 : 65 reçus = 50 + 15 cartes d'autres fichiers).
+    // L'unicité reste le filet ultime : toute collision de print sur ces
+    // 50 cartes échoue ligne par ligne ci-dessous.
     const { data: dupes } = await admin
       .from('user_cards')
       .select('character_id, print_number')
+      .in('user_id', parallel)
       .gte('obtained_at', marker);
     const seen = new Set<string>();
     for (const row of dupes ?? []) {

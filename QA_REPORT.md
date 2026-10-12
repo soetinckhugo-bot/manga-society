@@ -278,6 +278,15 @@ inflationniste ×2,8). Décision design requise — hors gravité de code.
   `scripts/purge-cloud-fixtures.ts` : plage élargie à [9_200_000, 9_400_000)
   pour couvrir les namespaces workers.
 
+- **Troisième bug d'isolation (run 04266c9, smoke-engine)** : le test
+  « 10 users en parallèle » comptait les `user_cards` **globalement** depuis
+  un marqueur temporel ; les fichiers parallèles ont inséré 15 cartes dans la
+  même fenêtre (65 reçus pour 50 attendus). Corrigé : filtre `.in('user_id',
+  parallel)` — l'unicité des prints reste vérifiée sur les 50 cartes du test,
+  ligne par ligne (aucune assertion affaiblie, le caractère global du filet
+  n'était pas le sujet : la séquence de prints est par construction unique
+  par perso, quel que soit le user).
+
 - Les 41 tests DB n'ont tourné que **sur le cloud** (pas de Docker sur ce
   poste) ; leur premier run en CI locale (Docker, migrations 0000→0008) reste
   le juge définitif — c'est la DoD. Comportements cloud vérifiés : concurrence
