@@ -110,9 +110,13 @@ jobs:
           # le pipe vers tee et le step passe au vert (trouvé en hotfix, cf.
           # QA_REPORT E-11) — la CI était verte SANS exécuter un seul test.
           set -o pipefail
-          npm run test 2>&1 | tee /tmp/vitest.log
+          npm run test 2>&1 | tee /tmp/vitest.raw.log
+          # Retrait des codes ANSI de vitest (sinon les grep ci-dessous ne
+          # matchent jamais — appris à la dure : garde trop stricte = run
+          # rouge alors que 108/108 tests passaient).
+          sed -e 's/\x1b\[[0-9;]*m//g' /tmp/vitest.raw.log > /tmp/vitest.log
           # Garde de non-exécution : vitest doit avoir produit un récap.
-          grep -E '^ *Test Files' /tmp/vitest.log || { echo "::error::vitest n'a produit aucun récap — tests non exécutés"; exit 1; }
+          grep -E 'Test Files .*passed' /tmp/vitest.log || { echo "::error::vitest n'a produit aucun récap — tests non exécutés"; exit 1; }
           # Anti skip silencieux (E-11) : un test DB skippé = CI verte
           # trompeuse. Tout fichier DB/sketch en "skipped" fait échouer le job.
           if grep -E '(tests/concurrency|tests/economy\.business|tests/rls-audit|scripts/smoke-engine)\S* .*[0-9]+ skipped' /tmp/vitest.log; then
