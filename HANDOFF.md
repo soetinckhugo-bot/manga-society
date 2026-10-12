@@ -454,8 +454,11 @@ les pages sont sous préfixe de locale).
 
 > Passe du 12 oct. 2026. DoD : CI verte de bout en bout avec `npm run test`,
 > scénario d'attaque d'E rejoué sur le cloud (bloqué), QA_REPORT §1–6 passés
-> en « corrigé (0008) » avec preuves. Statut : **cloud convergé et vérifié ;
-> CI en cours sur la PR** (voir plus bas).
+> en « corrigé (0008) » avec preuves. Statut : **DONE — CI verte 4/4 jobs
+> (commit f51f04c) : `Test Files 8 passed (8)` / `Tests 108 passed (108)`,
+> 0 skipped (garde anti-skip intégrée au job)**. Premier run CI réel = 3 bugs
+> d'isolation des fixtures trouvés et corrigés (QA_REPORT addendum, résumé
+> ci-dessous en fin de section).
 
 ## Livré
 
@@ -527,8 +530,34 @@ les pages sont sous préfixe de locale).
 
 - **B** : rien de bloquant côté 0008. Rappel E-09 (CSP prod) et E-10
   (.env.example Discord) toujours ouverts, hors ce hotfix.
-- **A** : smoke premium déjà couvert ; la CI porte désormais tout le poids
-  des 41 tests DB — premier run à surveiller (les tests n'ont jamais tourné
-  sous Docker ; tout écart signalé = bug réel à corriger, pas à affaiblir).
+- **A** : demande historique « CI ne lance pas les tests » **close** — le job
+  `Schéma Supabase` exécute désormais les 108 tests (8 fichiers) sur la stack
+  locale Docker, 0 skip. Trois défenses contre le skip/la non-exécution
+  silencieuse : `set -o pipefail`, garde de récap vitest, garde anti-skip
+  (E-11, deux strates — détail QA_REPORT).
 - **Orchestrateur** : E-06 (mix), puits économique = décisions produit
   toujours à trancher.
+
+## Premier run CI sous Docker — bugs trouvés (tous corrigés, QA_REPORT addendum)
+
+Le premier run réel (les 41 tests DB n'avaient jamais tourné sous Docker) a
+fait surface **3 bugs d'isolation des fixtures**, invisibles sur cloud car le
+grant 0006 refuse le DELETE sur `characters` (les fixtures y survivent) :
+
+1. **Namespace partagé entre fichiers parallèles** (vitest forks) : le
+   `cleanup()` afterAll d'un fichier supprimait les persos fixtures d'un
+   autre encore en cours → `CHARACTER_NOT_FOUND`, `user_cards` vidé en
+   cascade. Fix : `ANILIST_BASE` + préfixe de thèmes QA **par worker**
+   (`VITEST_WORKER_ID`, `tests/helpers.ts`) ; purge-cloud-fixtures élargie
+   [9_200_000, 9_400_000).
+2. **`.single()` sur `user_cards` dans les tests reroll** : un pack peut
+   contenir 2 instances du même perso (pool local = 12 fixtures shonen,
+   tirage indépendant par carte). Fix : `.limit(1)` — sujet = le reroll, pas
+   l'unicité du tirage ; assertions inchangées.
+3. **Fenêtre globale dans smoke-engine** : le compte des prints (`user_cards`
+   depuis un marqueur temporel, tous users confondus) capturait les cartes
+   des autres fichiers parallèles (65 pour 50). Fix : `.in('user_id', …)`.
+
+Rappel : la CI locale (`db reset` 0000→0008) et le cloud sont désormais
+exercés sur **les mêmes corps de fonctions** — toute future dérive entre les
+deux sera vue en CI.
