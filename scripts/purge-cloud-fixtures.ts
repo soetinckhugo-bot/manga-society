@@ -17,18 +17,22 @@ async function main() {
     { auth: { persistSession: false } },
   );
 
+  // Plage élargie 9_200_000..9_400_000 : les fixtures de test vivent désormais
+  // dans un namespace PAR WORKER vitest (cf. tests/helpers.ts), toutes les
+  // plages restent sous 9_400_000 pour un nombre raisonnable de workers.
+  const QA_RANGE_HI = 9_400_000;
   const r = await admin
     .from('characters')
     .update({ themes: [] })
     .gte('anilist_id', 9_200_000)
-    .lt('anilist_id', 9_201_000);
+    .lt('anilist_id', QA_RANGE_HI);
   console.log('themes vidés sur les fixtures:', r.error ? r.error.message : 'OK');
 
   const { count } = await admin
     .from('characters')
     .select('id', { count: 'exact', head: true })
     .gte('anilist_id', 9_200_000)
-    .lt('anilist_id', 9_201_000);
+    .lt('anilist_id', QA_RANGE_HI);
   console.log('fixtures restantes (hors pool de tirage):', count);
 
   const users = await admin.auth.admin.listUsers({ perPage: 100 });

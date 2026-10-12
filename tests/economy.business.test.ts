@@ -387,12 +387,16 @@ describe.skipIf(!IS_CONFIGURED)('business — streak / wishlist / points / quêt
     await refillStock(admin, user);
     const opened = await rpcOpen(user);
     const cardId = opened.cards[0]!.character_id;
-    const { data: card } = await admin
+    // Pas de .single() : un pack peut contenir DEUX instances du même perso
+    // (_pick_character tire chaque carte indépendamment ; pool local = 12
+    // fixtures shonen). Toute instance du perso convient au reroll.
+    const { data: cardRows } = await admin
       .from('user_cards')
       .select('id')
       .eq('user_id', user)
       .eq('character_id', cardId)
-      .single();
+      .limit(1);
+    const card = cardRows?.[0] ?? null;
     const { error } = await admin.rpc('reroll_cosmetic', {
       p_user: user,
       p_card_id: card!.id,
@@ -410,12 +414,15 @@ describe.skipIf(!IS_CONFIGURED)('business — streak / wishlist / points / quêt
     const user = userIds[7]!;
     await refillStock(admin, user);
     const opened = await rpcOpen(user);
-    const { data: card } = await admin
+    // Même règle que le test précédent : pas de .single() (doublons possibles
+    // d'un même perso dans un pack) — la première instance suffit.
+    const { data: cardRows } = await admin
       .from('user_cards')
       .select('id')
       .eq('user_id', user)
       .eq('character_id', opened.cards[0]!.character_id)
-      .single();
+      .limit(1);
+    const card = cardRows?.[0] ?? null;
     const { data: frame } = await admin
       .from('cosmetics')
       .select('id, chakra_price')

@@ -259,6 +259,25 @@ inflationniste ×2,8). Décision design requise — hors gravité de code.
   vitest). Trois défenses indépendantes désormais : pipefail, garde récap,
   garde anti-skip.
 
+- **Premier run CI réel des tests DB (Docker, commit b3c5d76) : 4 échecs
+  dans economy.business** — deux bugs d'ISOLATION des fixtures, invisibles
+  sur cloud (le grant 0006 refuse le DELETE sur characters, cf. helpers) :
+  1. **Namespace de fixtures partagé entre fichiers parallèles** : vitest
+     exécute les fichiers en parallèle (forks) contre la même base locale ;
+     le `cleanup()` afterAll d'un fichier supprimait les persos fixtures
+     (`anilist_id` ∈ [9_200_000, 9_201_000)) d'un autre fichier encore en
+     cours → `CHARACTER_NOT_FOUND` et `user_cards` vidé (cascade). Corrigé :
+     `ANILIST_BASE` et le préfixe de thèmes QA deviennent **par worker vitest**
+     (`tests/helpers.ts`) — plages disjointes, cleanup sans effet de bord.
+  2. **`.single()` sur `user_cards` dans les tests reroll** : un pack peut
+     contenir deux instances du même perso (`_pick_character` tire chaque
+     carte indépendamment ; pool local = 12 fixtures shonen, 0002 ne seed
+     aucun perso) → `single()` renvoyait « multiple rows » → carte null.
+     Corrigé : `.limit(1)` + première instance — aucune assertion affaiblie,
+     le sujet du test est le comportement du reroll, pas l'unicité du tirage.
+  `scripts/purge-cloud-fixtures.ts` : plage élargie à [9_200_000, 9_400_000)
+  pour couvrir les namespaces workers.
+
 - Les 41 tests DB n'ont tourné que **sur le cloud** (pas de Docker sur ce
   poste) ; leur premier run en CI locale (Docker, migrations 0000→0008) reste
   le juge définitif — c'est la DoD. Comportements cloud vérifiés : concurrence

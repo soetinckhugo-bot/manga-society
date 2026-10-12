@@ -42,7 +42,20 @@ export const IS_CONFIGURED =
   (isLocalTarget(SUPABASE_URL) || process.env.SMOKE_ENGINE_ALLOW_REMOTE === '1');
 
 export const RUN_ID = `e${Date.now().toString(36)}`;
-export const ANILIST_BASE = 9_200_000;
+// Namespace de fixtures PAR WORKER vitest : les fichiers de test s'exécutent
+// en parallèle (forks) contre la MÊME base locale, et cleanup() (afterAll)
+// supprime les persos fixtures de SA plage anilist_id. Un ANILIST_BASE
+// partagé faisait donc qu'un fichier fini supprimait les fixtures d'un autre
+// encore en cours (CI 2026-10-12 : CHARACTER_NOT_FOUND + carte null dans
+// economy.business) — sur le cloud le DELETE était refusé par les grants
+// (0006), d'où des runs cloud verts trompeurs. Chaque worker décale sa plage
+// de 10 000 ; les fichiers d'un même worker tournent en séquence, donc le
+// cleanup inter-fichiers reste sûr (seed upsert idempotent).
+const WORKER = Number(process.env.VITEST_WORKER_ID ?? 1);
+export const ANILIST_BASE = 9_200_000 + (WORKER - 1) * 10_000;
+// Préfixe de thèmes dédiés QA, lui aussi par worker (cleanup() ne touche
+// alors que les thèmes de SON worker — jamais ceux d'un fichier parallèle).
+export const QA_THEME_PREFIX = `qa-w${WORKER}`;
 
 export type Admin = SupabaseClient<Database>;
 
@@ -153,9 +166,9 @@ export async function cleanup(admin: Admin, userIds: string[]): Promise<void> {
       .gte('anilist_id', ANILIST_BASE)
       .lt('anilist_id', ANILIST_BASE + 1_000);
   }
-  const delThemes = await admin.from('themes').delete().like('slug', 'qa-%');
+  const delThemes = await admin.from('themes').delete().like('slug', `${QA_THEME_PREFIX}-%`);
   if (delThemes.error) {
-    await admin.from('themes').update({ sort_order: 99 }).like('slug', 'qa-%');
+    await admin.from('themes').update({ sort_order: 99 }).like('slug', `${QA_THEME_PREFIX}-%`);
   }
 }
 

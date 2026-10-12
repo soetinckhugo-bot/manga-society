@@ -29,6 +29,7 @@ import {
   refillStock,
   seedFixtureCharacters,
   ANILIST_BASE,
+  QA_THEME_PREFIX,
   type Admin,
 } from './helpers';
 
@@ -53,6 +54,10 @@ interface OpenResult {
 
 let admin: Admin;
 let userIds: string[] = [];
+
+// Thème dédié du test "pool de 1 perso" : slug scopé par worker vitest
+// (QA_THEME_PREFIX) — jamais visible ni purgé par un autre fichier parallèle.
+const SOLO_THEME = `${QA_THEME_PREFIX}-solo`;
 
 async function rpcOpenRaw(user: string, theme: string, key: string, weights?: Record<string, number>) {
   return admin.rpc('open_booster', {
@@ -205,7 +210,7 @@ describe.skipIf(!IS_CONFIGURED)('concurrency — P0 (burn pendant ouverture, mê
     // Pool unique : thème dédié + unique perso rare dedans (aucun concurrent).
     await admin
       .from('themes')
-      .upsert({ slug: 'qa-solo', name_fr: 'QA Solo', name_en: 'QA Solo', sort_order: 99 });
+      .upsert({ slug: SOLO_THEME, name_fr: 'QA Solo', name_en: 'QA Solo', sort_order: 99 });
     const { data: solo } = await admin
       .from('characters')
       .insert({
@@ -214,7 +219,7 @@ describe.skipIf(!IS_CONFIGURED)('concurrency — P0 (burn pendant ouverture, mê
         anime_title: 'QA Solo',
         favourites: 1,
         base_rarity: 'rare',
-        themes: ['qa-solo'],
+        themes: [SOLO_THEME],
         image_url: 'https://placehold.co/300x420/111827/94a3b8?text=Solo',
         image_url_fallback: null,
       })
@@ -237,7 +242,7 @@ describe.skipIf(!IS_CONFIGURED)('concurrency — P0 (burn pendant ouverture, mê
         .update({ pity_legendary: 0, pity_mythic: 0 })
         .eq('id', user);
       const results = await Promise.all(
-        Array.from({ length: 10 }, () => rpcOpenRaw(user, 'qa-solo', freshKey(), RARE_ONLY)),
+        Array.from({ length: 10 }, () => rpcOpenRaw(user, SOLO_THEME, freshKey(), RARE_ONLY)),
       );
       for (const r of results) {
         expect(r.error).toBeNull();
