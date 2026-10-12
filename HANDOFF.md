@@ -446,3 +446,64 @@ Budget first-load JS < 200 KB gzip non mesuré (à la charge d'E).
 **Pour l'architecte (SPEC à mettre à jour)** : §2.1 dit `middleware.ts` →
 c'est `proxy.ts` en Next 16 ; le fallback offline est `/fr/offline` (toutes
 les pages sont sous préfixe de locale).
+
+---
+
+# HANDOFF — Agent D (PROMPT D, Juice & Polish)
+
+> Branche `agent/juice`, 5 commits par sujet (assets → game-card → opening →
+> i18n → handoff). Placeholders « PLACEHOLDER AGENT B » remplacés
+> (`components/game-card/`, `components/booster-opening/`).
+
+## Livré (périmètre D)
+
+| Fichier | Contenu |
+|---|---|
+| `scripts/generate-assets.mjs` | Génération procédurale : SVG artisanal → PNG via `sharp` (déjà dans node_modules, dép transitif — NON ajouté au package.json) ; synthèse PCM déterministe → WAV. **Nouveau fichier hors cartographie SPEC §2.7** (aucun slot « assets » prévu) — à ratifier. Régénération : `node scripts/generate-assets.mjs` |
+| `public/packs/{shonen,shojo,webtoon,big3,seinen,isekai,mix}.png` | Pack arts 3:4, kanji médaillon (少/花/文/王/青/異/混), accent de thème, ~200 Ko chacun (palette quantifiée, budget 4G/precache PWA). **Chemins déjà seedés dans `themes.pack_art_url`** → la grille B les affiche dès maintenant |
+| `public/card-back.png` | Verso seigaiha sombre + médaillon or 漫 (2.5:3.5 rendu 5/7), 148 Ko |
+| `public/sounds/*.wav` ×8 | tear/flip/rare/epic/legendary/mythic/coin/click, 4–79 Ko (budget < 200 KB respecté). **Format WAV et non mp3** : aucun encodeur MP3 disponible hors-ligne ; WAV = synthèse maison, CC0 par construction, lecture universelle. Prompts IA de remplacement : `assets/prompts.md` |
+| `components/game-card/` | Carte définitif : ratio TCG 5/7, 6 cadres rareté (tokens `--rarity-*`), gems d'angle Épique+, halo animé L/M (opacity), print gravé `#NNNN/total` sur l'image + badge tier (config `printVisualTiers`, shimmer transform-only), code rareté TCG, overlays css_config défensifs (frame/holo/dye), tilt desktop, fallback silhouette. **Contrat de props inchangé** (`{card, variant}`) |
+| `components/effects/` | `Tilt` (pointer fin, rAF, mutations DOM directes, will-change parcimonieux) + `useReducedMotion` (useSyncExternalStore, cacheComponents-safe) |
+| `components/booster-opening/` | Séquence complète : tear-screen (drag pointer + fallback bouton, confettis, halo) → reveal-deck (state machine, Espace/maintenir/Échap, Tout révéler) → card-reveal (flip 3D, intensité C→M) → recap (éventail, meilleure carte, copier le lien, **PNG 1200×630 via canvas maison** : satori/resvg/html-to-image non installés, zéro-dep choisi + silhouette de repli CORS) + particles canvas (< 300 nœuds, DPR capé 2) + sounds WebAudio (unlock 1er geste, preload tear/flip) |
+| `messages/{fr,en}/opening.json` | Namespace `opening` déposé selon la convention de fusion (aucun fichier B touché), parité fr/en |
+
+## Contrat B↔D
+
+- `GameCardProps` / `BoosterOpeningProps` : **signatures stables respectées**.
+- `BoosterOpening` gagne 2 props **optionnelles additives** : `packSlug`,
+  `packName` (défaut `mix`). Sans elles la séquence marche (pack générique).
+- Aucun rendu carte hors `game-card/` détecté (B avait déjà tout
+  centralisé) → **aucun refactor nécessaire**.
+
+## Demandes
+
+- **Agent B** : passer `packSlug`/`packName` au montage de
+  `<BoosterOpening>` dans `boosters-page.tsx` (thème sélectionné +
+  `DailyPackWidget` avec `response.theme.slug`). 1 ligne, pas urgent
+  (fallback propre). Le shimmer premium `.buttonShimmer` existe dans
+  `game-card.module.css` si B veut l'appliquer sur ses boutons premium.
+- **Agent E** : Definition of Done perf **non mesurée ici** (pas de
+  DevTools dans cet environnement) — méthodologie suivie : animations
+  transform/opacity exclusivement (audité à la main, zéro
+  width/height/top/left animé, zéro layout keyframes), particules < 300,
+  will-change parcimonieux, DPR capé, sons < 200 Ko, preload 2 fichiers,
+  verso préchargé à l'écran pack. À mesurer : Performance panel, 4G
+  throttling + CPU 4×, frame drops < 5 % pendant la séquence.
+- **Agent 0 / orchestrateur** : `scripts/generate-assets.mjs` nouveau
+  fichier (voir Livré). Sons WAV vs mp3 de la spec (voir Livré).
+
+## Vérifications effectuées
+
+- `npx tsc --noEmit` : 0 erreur hors `tests/` (dossier **non suivi**,
+  travail en cours Agent E dans l'arbre partagé — ne pas committer).
+- `npx eslint` périmètre D : 0 erreur, 0 warning (React 19 :
+  `react-hooks/refs` respecté — pas d'accès ref pendant le render).
+- `next build` : à tourner côté CI (voir sujet suivant dans ce handoff).
+
+## Limites connues
+
+- PNG de partage : si CORS AniList refuse le canvas (tain), les cartes
+  sont dessinées en silhouette — le PNG est toujours généré.
+- Booster MIX : `open_booster` doit accepter `theme_slug='mix'` (déjà
+  signalé par C) ; l'asset `mix.png` est prêt et le fallback l'utilise.
