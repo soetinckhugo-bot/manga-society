@@ -84,19 +84,34 @@ jobs:
       - name: Appliquer les migrations (0000 → 0008)
         run: supabase db reset
       - name: Clés service role + anon du Supabase local
-        # Les smoke tests s'authentifient contre le Supabase LOCAL du runner
+        # Les tests s'authentifient contre le Supabase LOCAL du runner
         # (SPEC §8 : jamais le cloud). Les clés du bloc env sont des
-        # placeholders ; les vraies clés de la stack locale sont injectées ici
-        # — l'anon est requis par les sign-ins de l'audit RLS (tests/rls-audit).
+        # placeholders. NE PAS utiliser `supabase status -o env` pour les
+        # extraire : la sortie peut être vide (services partiels) et écraser
+        # les vars avec du VIDE → tests DB skippés silencieusement et CI
+        # verte trompeuse (trouvé en hotfix, cf. QA_REPORT E-11). La stack
+        # locale n'ayant PAS de jwt_secret custom (supabase/config.toml),
+        # ses clés sont les JWT démo standards — valeurs publiques non
+        # secrètes. Si un jwt_secret custom est ajouté un jour, échoue fort
+        # ici plutôt que de skipper :
         run: |
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SUPABASE_SERVICE_ROLE_KEY=' | cut -d '=' -f2-)" >> "$GITHUB_ENV"
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status -o env | grep '^SUPABASE_ANON_KEY=' | cut -d '=' -f2-)" >> "$GITHUB_ENV"
+          {
+            echo "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+          } >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - name: Tests
-        run: npm ci && npm run test
+        run: |
+          npm run test 2>&1 | tee /tmp/vitest.log
+          # Anti skip silencieux (E-11) : un test DB skippé = CI verte
+          # trompeuse. Tout fichier DB/sketch en "skipped" fait échouer le job.
+          if grep -E '(tests/concurrency|tests/economy\.business|tests/rls-audit|scripts/smoke-engine)\S* .*[0-9]+ skipped' /tmp/vitest.log; then
+            echo "::error::Tests DB skippés — clés/env manquants, cf. étape précédente"
+            exit 1
+          fi
       - name: Vérifications de cohérence minimales
         run: |
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -c "select count(*) as themes from public.themes;"

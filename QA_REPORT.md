@@ -244,6 +244,14 @@ inflationniste ×2,8). Décision design requise — hors gravité de code.
 
 ## Limites connues de cette passe Agent 0
 
+- **E-11 (documenté par E, corrigé dans cette passe)** : la CI exécutait les
+  tests DB en skip silencieux — l'extraction `supabase status -o env` renvoyait
+  des valeurs vides qui écrasaient les vars d'env, et la garde
+  `IS_CONFIGURED` skippait sans échec (CI verte trompeuse). Corrigé dans
+  `.github/workflows/ci.yml` : clés locales = JWT démo standards (aucun
+  `jwt_secret` custom dans `supabase/config.toml`) + **garde anti-skip** qui
+  fait échouer le job si un fichier DB est skippé.
+
 - Les 41 tests DB n'ont tourné que **sur le cloud** (pas de Docker sur ce
   poste) ; leur premier run en CI locale (Docker, migrations 0000→0008) reste
   le juge définitif — c'est la DoD. Comportements cloud vérifiés : concurrence
