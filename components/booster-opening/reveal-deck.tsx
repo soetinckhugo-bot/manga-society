@@ -16,7 +16,7 @@ import type { OpenedCardDto } from '@/types/api';
 
 import { CardReveal, intensityFor } from './card-reveal';
 import { ParticleBurst } from './particles';
-import { playSound } from './sounds';
+import { playSound, unlockSounds } from './sounds';
 
 import styles from './opening.module.css';
 
@@ -99,9 +99,13 @@ export const RevealDeck = forwardRef<RevealDeckHandle, RevealDeckProps>(
     const clearTimers = useCallback(() => {
       if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
       if (dwellTimerRef.current) clearTimeout(dwellTimerRef.current);
-      if (revealAllTimerRef.current) clearInterval(revealAllTimerRef.current);
       soundTimerRef.current = null;
       dwellTimerRef.current = null;
+    }, []);
+
+    /** Arrête aussi "Tout révéler" (skip/Échap/unmount). */
+    const stopRevealAll = useCallback(() => {
+      if (revealAllTimerRef.current) clearInterval(revealAllTimerRef.current);
       revealAllTimerRef.current = null;
     }, []);
 
@@ -198,23 +202,28 @@ export const RevealDeck = forwardRef<RevealDeckHandle, RevealDeckProps>(
       }, halfFlip);
     }, [current, reduced, fireFx, advance]);
 
+    /** Step interne (flip ou avance) — utilisé par l'action ET "Tout révéler". */
+    const step = useCallback(() => {
+      if (doneRef.current) return;
+      if (!flippedRef.current) flip();
+      else advance(); // déjà retournée : on avance (hold = avance rapide)
+    }, [flip, advance]);
+
     const action = useCallback(() => {
       if (revealAllTimerRef.current) return; // "Tout révéler" en cours
-      if (!flippedRef.current) flip();
-      else advance(); // déjà retournée : l'action avance (hold = rapide)
-    }, [flip, advance]);
+      step();
+    }, [step]);
 
     const revealAll = useCallback(() => {
       if (revealAllTimerRef.current || doneRef.current) return;
       revealAllTimerRef.current = setInterval(() => {
         if (doneRef.current) {
-          clearInterval(revealAllTimerRef.current ?? undefined);
-          revealAllTimerRef.current = null;
+          stopRevealAll();
           return;
         }
-        action();
+        step();
       }, 400);
-    }, [action]);
+    }, [step, stopRevealAll]);
 
     useImperativeHandle(ref, () => ({ action, revealAll }), [action, revealAll]);
 
@@ -222,9 +231,10 @@ export const RevealDeck = forwardRef<RevealDeckHandle, RevealDeckProps>(
     useEffect(
       () => () => {
         clearTimers();
+        stopRevealAll();
         burstRef.current?.destroy();
       },
-      [clearTimers],
+      [clearTimers, stopRevealAll],
     );
 
     if (!current) return null;
@@ -258,7 +268,16 @@ export const RevealDeck = forwardRef<RevealDeckHandle, RevealDeckProps>(
             ))}
           </div>
 
-          <div className="relative z-10">
+          <div
+            className="relative z-10 cursor-pointer"
+            role="button"
+            tabIndex={-1}
+            aria-label={flipped ? t('reveal.next') : t('reveal.flip')}
+            onClick={() => {
+              unlockSounds();
+              action();
+            }}
+          >
             <CardReveal card={current} flipped={flipped} fx={fx} reduced={reduced} />
           </div>
         </div>

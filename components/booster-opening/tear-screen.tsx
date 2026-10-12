@@ -62,10 +62,11 @@ export function TearScreen({ packSrc, packName, isGolden, reduced, onTorn }: Tea
   const applyProgress = useCallback((p: number) => {
     const flap = flapRef.current;
     if (!flap) return;
-    const deg = p * 26;
-    const lift = p * 46;
-    flap.style.transform = `translateY(${-lift}% ) rotate(${-deg * 0.35}deg)`;
-    flap.style.opacity = String(1 - p * 0.25);
+    // Le rabat se soulève et pivote autour de son bord bas (déchirure).
+    const lift = p * 110;
+    const deg = p * 9;
+    flap.style.transform = `translateY(-${lift}%) rotate(${-deg}deg)`;
+    flap.style.opacity = String(1 - p * 0.15);
     const gap = gapRef.current;
     if (gap) gap.style.opacity = String(Math.min(1, p * 1.4));
     const guide = guideRef.current;

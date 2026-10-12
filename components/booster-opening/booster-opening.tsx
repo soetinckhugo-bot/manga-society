@@ -102,7 +102,10 @@ export function BoosterOpening({
         phaseRef.current === 'reveal' &&
         (event.key === ' ' || event.key === 'Enter')
       ) {
-        // Espace/Entrée (maintenir = key-repeat = avance rapide).
+        // Espace/Entrée (maintenir = key-repeat = avance rapide). Si un
+        // contrôle a le focus, son activation native (click) suffit.
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button, a, input, [role="button"]')) return;
         event.preventDefault();
         deckRef.current?.action();
       }
