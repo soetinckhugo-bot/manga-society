@@ -349,10 +349,24 @@ Dyes + aperçu live), `/u/[username]` (profil public), `/offline`,
 `@/lib/i18n/navigation`.
 
 **Auth/session** : `lib/supabase/{client,server,middleware}.ts` +
-`app/auth/callback/route.ts` (échange code, hook streak best-effort,
-redirection onboarding ou /). `proxy.ts` (racine) = ex-middleware Next 16 :
+`app/[locale]/auth/callback/route.ts` (échange code PKCE, hook streak
+best-effort, redirection onboarding ou /). Le callback vit SOUS le préfixe
+de locale : le proxy i18n rebascule toute URL non préfixée vers `/fr/…`,
+donc `/auth/callback` nu 404ait. Client navigateur en `flowType: 'pkce'`
+(sinon le magic link revient en `#fragment` que le route handler ne voit
+jamais). Pages d'erreur traduites : `app/[locale]/error.tsx`,
+`app/[locale]/not-found.tsx` (+ catch-all `app/[locale]/[...rest]/page.tsx`
+pour déclencher la 404 traduite dans le segment localisé).
+`proxy.ts` (racine) = ex-middleware Next 16 :
 refresh session Supabase + garde /boosters|/collection|/shop|/onboarding +
 routing next-intl.
+
+⚠️ **Mailer Supabase en panne** (constaté au test e2e du 2026-10-12) :
+`POST /auth/v1/otp` renvoie 500 « Error sending magic link email » même
+sans options → les magic links n'arrivent pas. À vérifier dans le dashboard
+projet (SMTP custom / rate limit). Le `redirect_to`
+`/{locale}/auth/callback` est lui bien accepté (la requête atteint l'étape
+envoi). Sessions et OAuth non affectés côté code.
 
 **PWA** : `@serwist/turbopack` (route handler `app/serwist/[path]/route.ts`
 → SW servi à `/serwist/sw.js`, vérifié HTTP 200 avec precache manifest ;
@@ -426,7 +440,7 @@ la séquence sont à implémenter dans `booster-opening/`.
 **Pour l'Agent E (audit)** : CSP en dev inclut `'unsafe-eval'` (HMR
 turbopack) — headers appliqués aussi en dev par simplicité ; à auditer.
 `.env.example` : `DISCORD_REDIRECT_URI=…/api/auth/callback/discord` ≠
-callback frontend `/auth/callback` (Supabase gère l'OAuth — à clarifier).
+callback frontend `/{locale}/auth/callback` (Supabase gère l'OAuth).
 Budget first-load JS < 200 KB gzip non mesuré (à la charge d'E).
 
 **Pour l'architecte (SPEC à mettre à jour)** : §2.1 dit `middleware.ts` →
