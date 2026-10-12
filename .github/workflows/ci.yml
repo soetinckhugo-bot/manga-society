@@ -81,8 +81,19 @@ jobs:
           version: latest
       - name: Démarrer la stack Supabase locale (Postgres 15)
         run: supabase start
-      - name: Appliquer les migrations (0000 → 0001 → 0002)
+      - name: Appliquer les migrations (0000 → 0007)
         run: supabase db reset
+      - name: Clé service role du Supabase local
+        # Les smoke tests s'authentifient contre le Supabase LOCAL du runner
+        # (SPEC §8 : jamais le cloud). La clé du bloc env est un placeholder.
+        run: |
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SUPABASE_SERVICE_ROLE_KEY=' | cut -d '=' -f2-)" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Tests
+        run: npm ci && npm run test
       - name: Vérifications de cohérence minimales
         run: |
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -c "select count(*) as themes from public.themes;"
