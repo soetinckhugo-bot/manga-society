@@ -538,6 +538,18 @@ les pages sont sous préfixe de locale).
 - **Orchestrateur** : E-06 (mix), puits économique = décisions produit
   toujours à trancher.
 
+## Addendum final — 0009 booster MIX (12 oct., post-merge)
+
+E-06 tranché par l'orchestrateur. **`0009_booster_mix.sql`** (additif) :
+upsert thème `mix` + prédicat `(slug = 'mix' or slug = any(themes))` central
+dans `_pick_character` (hérité par open/premium/daily ; le daily pack de
+rotation tombe sur le pool complet 1 j/7 — effet assumé) et dans
+`get_theme_pool_info`. `INVALID_THEME` inchangé. **Cloud poussé et aligné
+0000→0009** ; vérifié live : pool mix = **5 000 = 3 353 taggés + 1 647
+untagged** (recomptés indépendamment). Test économique ajouté dans
+`economy.business.test.ts` (pool-info exact, ouverture mix à poids forcé,
+négatif slug inconnu). **Gel ensuite** — la prod Vercel attend le re-audit.
+
 ## Premier run CI sous Docker — bugs trouvés (tous corrigés, QA_REPORT addendum)
 
 Le premier run réel (les 41 tests DB n'avaient jamais tourné sous Docker) a
