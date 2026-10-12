@@ -376,9 +376,9 @@ let wrote = 0;
 for (const pack of PACKS) {
   const out = path.join(PACKS_DIR, `${pack.slug}.png`);
   // Palette quantifiée : le grain foil reste visible mais le poids chute
-  // drastiquement (critère 4G + precache PWA, SPEC §6).
+  // drastiquement (critère 4G + precache PWA, SPEC §6 ; < 200 Ko/pack).
   await sharp(Buffer.from(packSvg(pack)))
-    .png({ palette: true, quality: 82, compressionLevel: 9 })
+    .png({ palette: true, quality: 70, compressionLevel: 9 })
     .toFile(out);
   wrote++;
   console.log(`pack  → ${path.relative(ROOT, out)}`);
