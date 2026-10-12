@@ -12,6 +12,19 @@
  *   donné par `httpStatusForError(code)`.
  * - Toute mutation d'économie prend une `idempotency_key` uuid générée par le
  *   client À CHAQUE tentative de clic (standard commun n°4).
+ *
+ * JOURNAL DES ÉVOLUTIONS (Agent A) :
+ * - [Agent A] OpenPremiumBoosterResponse : `card` (1 carte). Règle produit
+ *   verrouillée : 10 pts = 1 carte, Légendaire minimum (roll 85% L / 15% M,
+ *   priorité pity M > pity L — lib/config.ts premium). L'implémentation RPC
+ *   initiale (0001) accordait 5 cartes par erreur → corrigée par la
+ *   migration additive 0004 (create or replace open_premium_booster).
+ *   `theme_slug` présent (pool = thème du jour, rotation déterministe).
+ * - [Agent A] ClaimDailyPackResponse : resserré sur ce que la RPC
+ *   claim_daily_pack renvoie (cards, theme, next_reset_at, pity, doré).
+ *   Les soldes (chakra/points/stock) retirés — resync via GET state.
+ * - [Agent A] LoginStreakResponse ajouté (route POST /api/me/login-streak,
+ *   absente de la liste initiale — RPC update_login_streak du schéma).
  */
 import type { Rarity } from '@/lib/config';
 import type { AppErrorCode } from '@/lib/errors';
@@ -73,7 +86,7 @@ export interface CharacterSummaryDto {
   name_native: string | null;
   image_url: string;
   image_url_fallback: string | null;
-  anime_title: string;
+  anime_title: string | null;
   base_rarity: Rarity;
   print_count: number;
   wishlist_count: number;
@@ -254,16 +267,19 @@ export interface OpenBoosterResponse {
 export type OpenPremiumBoosterRequest = OpenPremiumBoosterInput;
 
 export interface OpenPremiumBoosterResponse {
-  /** 1 carte minimum, Légendaire minimum garantie (roll 85% L / 15% M). */
+  /** 1 carte, Légendaire minimum garantie (roll 85% L / 15% M — priorité
+   *  pity M > pity L ; corrigée par la migration 0004, l'implémentation
+   *  initiale accordait 5 cartes par erreur). */
   card: OpenedCardDto;
   is_golden: boolean;
-  booster_count: number;
+  /** Pool utilisé (thème du jour, rotation déterministe côté serveur). */
+  theme_slug: string;
+  /** Solde de points APRÈS débit (10 points dépensés). */
+  premium_points: number;
+  chakra: number;
   pity_legendary_left: number;
   pity_mythic_left: number;
   golden_counter: number;
-  premium_points: number;
-  chakra: number;
-  cards_obtained_count: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -274,16 +290,15 @@ export type ClaimDailyPackRequest = ClaimDailyPackInput;
 
 export interface ClaimDailyPackResponse {
   cards: OpenedCardDto[];
+  /** L'ouverture du pack comptait-elle comme une ouverture dorée (toutes
+   *  les 10 — premium et daily compris, SPEC §1). */
+  is_golden: boolean;
   theme: ThemeDto;
-  /** Minuit Europe/Paris du prochain reset. */
+  /** Minuit Europe/Paris du prochain reset (calculé côté serveur). */
   next_reset_at: string;
-  booster_count: number;
   pity_legendary_left: number;
   pity_mythic_left: number;
   golden_counter: number;
-  premium_points: number;
-  chakra: number;
-  cards_obtained_count: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -291,6 +306,22 @@ export interface ClaimDailyPackResponse {
 // ---------------------------------------------------------------------------
 
 export type GetBoosterStateResponse = BoosterStateDto;
+
+// ---------------------------------------------------------------------------
+// POST /api/me/login-streak — hook login (idempotent par construction :
+// même jour = no-op côté RPC, récompense J7 = cosmétique 'streak-7')
+// ---------------------------------------------------------------------------
+
+export interface LoginStreakResponse {
+  /** Jour de streak actuel après l'appel (0 = aucun, 1-7+). */
+  login_streak: number;
+  /** 'none' = déjà logué aujourd'hui ; 'chakra' = chakra croissant ;
+   *  'cosmetic' = récompense cosmétique du palier ×7. */
+  reward: 'none' | 'chakra' | 'cosmetic';
+  chakra_gained: number;
+  /** Solde APRÈS crédit ; null quand reward = 'cosmetic' (pas de crédit). */
+  new_balance: number | null;
+}
 
 // ---------------------------------------------------------------------------
 // POST /api/cards/burn
@@ -417,3 +448,52 @@ export interface GetWishlistResponse {
 // ---------------------------------------------------------------------------
 
 export type GetThemePoolInfoResponse = ThemePoolInfoDto;
+
+// ---------------------------------------------------------------------------
+// Profil public — username (intégration Agent B : onboarding + /u/[username])
+// ---------------------------------------------------------------------------
+
+/** GET /api/profiles/check-username — dispo temps réel (onboarding). */
+export interface CheckUsernameResponse {
+  available: boolean;
+  /** null = dispo ; sinon 'invalid' (format) ou 'taken'. */
+  reason: 'invalid' | 'taken' | null;
+}
+
+/** POST /api/profiles/username — choix/maj du pseudo (citext unique). */
+export interface SetUsernameResponse {
+  username: string;
+}
+
+/** POST /api/me/showcase — vitrine publique (≤ 5 cartes possédées). */
+export interface SetShowcaseResponse {
+  /** Vitrine complète après mise à jour (ordre = ordre envoyé). */
+  showcase: CardDto[];
+}
+
+/** Profil public /u/[username] — stats + vitrine + wishlist publique. */
+export interface PublicProfileDto {
+  username: string;
+  created_at: string;
+  login_streak: number;
+  cards_obtained_count: number;
+  collection: {
+    /** Persos distincts possédés / total de persos du jeu. */
+    owned_characters: number;
+    total_characters: number;
+    /** 0-100, arrondi 1 décimale. */
+    percent: number;
+  };
+  /** Plus petit print # détenu (toutes cartes confondues), null si collection
+   *  vide. */
+  best_print_number: number | null;
+  /** Rareté la plus haute détenue, null si collection vide. */
+  highest_rarity: Rarity | null;
+  /** Vitrine configurée (≤ 5), [] si le joueur ne l'a pas remplie. */
+  showcase: CardDto[];
+  /** Wishlist publique (CharacterSummaryDto), [] si vide. */
+  wishlist: CharacterSummaryDto[];
+}
+
+/** GET /api/u/[username] — 404 PROFILE_NOT_FOUND si inconnu. */
+export type GetPublicProfileResponse = PublicProfileDto;

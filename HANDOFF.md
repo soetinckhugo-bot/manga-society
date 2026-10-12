@@ -237,47 +237,43 @@ puis lancer A + B + C en parallèle selon `SPEC.md` §10.*
 
 | Fichier | Contenu |
 |---|---|
-| `lib/server/supabase.ts` | Clients serveur : `getUserClient()` (@supabase/ssr, cookies, refresh session) et `getServiceClient()` (service role, scripts uniquement) |
-| `lib/server/auth.ts` | `requireUser()` → 401 `UNAUTHENTICATED` (garde côté handler, jamais dans middleware — SPEC règle 7) |
-| `lib/server/ratelimit.ts` | Token bucket mémoire par user ET par IP, interface `RateLimiter` swappable (Upstash plus tard via `setRateLimiter`). Policies : `open` 1/2 s, `mutation` 5/s, `read` 30/s (limites = infra, pas dans lib/config.ts) |
-| `lib/server/logger.ts` | Logger JSON structuré (level, time, method, route, user_id, status, duration_ms, error_code) ; `request_id` uuid repris du header entrant ou généré, propagé en réponse (`x-request-id`) |
-| `lib/server/api-helpers.ts` | Wrapper transversal `handleApi` : request_id → auth → rate limit → Zod → run() → mapping erreur Postgres → `{ error: CODE }` + status. Aucun message/stack/SQL au client |
-| `lib/server/dto.ts` | Mapping RPC → contrats (zod strict, 500 `INTERNAL_ERROR` hors contrat) ; `is_new_character` calculé serveur (borne horodatée avant RPC + garde 3 s de dérive) ; hydratation en 3 requêtes indexées (pas de N+1) |
-| `app/api/**` (17 routes) | boosters open / open-premium / daily / state, cards burn + `[id]` + apply-cosmetic + reroll-cosmetic, collection + album, quests GET + **quests/claim**, shop/buy, wishlist GET + toggle, themes/[slug]/pool-info, **me/login-streak** |
-| `scripts/smoke-engine.test.ts` | 8 scénarios vitest sur Supabase LOCAL : 10 users parallèles (0 print dupliqué, compteurs bornés, drops_log complet), idempotence ×3 → 1 débit, pity L (25) et M (200) avec poids forcés, doré exactement tous les 10, daily strict 1/jour + Épique min + gratuit, premium 10 pts + slot garanti L/M, burn ownership + crédit + idempotence |
-| `vitest.config.ts` | Alias `@`, timeouts 120 s |
-| `MIGRATIONS.md` | Journal de la migration additive 0003 |
-| `supabase/migrations/0003_read_rpcs.sql` | **Migration additive (SPEC §4 règle 5)** — 8 RPC de lecture `SECURITY DEFINER` : get_booster_state, get_collection_page (curseur, filtres/tris SQL), get_album, get_card_detail (+ owners_count), get_daily_quests, get_wishlist, get_theme_pool_info, get_next_reset_at. Motif : 0001 n'expose que des mutations ; sans ces RPC les GET violent « aucun N+1 / pas de logique métier dans les handlers » (détail dans MIGRATIONS.md). **À appliquer : `supabase db reset` (local) / `supabase db push` (cloud) — non appliquée ici (pas de Docker sur le poste). À faire valider par Agent 0 en review.** |
-| `package.json` | `@supabase/ssr` + `@supabase/supabase-js` déplacé en `dependencies` (utilisé au runtime par les handlers), `vitest` en devDeps, scripts `typecheck` et `test` ajoutés |
+| `lib/server/supabase.ts` | Clients serveur, source UNIQUE : `getUserClient()` (cookies, refresh session), `getServiceClient()` (scripts), `createPublicClient()` (sans cookies, lectures publiques/prerender). `lib/supabase/server.ts` (B) n'est plus qu'une façade ré-exportant ces fabriques — unification faite, ne pas re-dupliquer |
+| `lib/server/auth.ts` | `requireUser()` (401) + `getRequestAuth()` non bloquante (client + user null) pour les routes publiques |
+| `lib/server/ratelimit.ts` | Token bucket mémoire par user ET par IP, interface `RateLimiter` swappable. Policies : `open` 1/2 s, `mutation` 5/s, `read` 30/s |
+| `lib/server/logger.ts` | Logger JSON structuré ; `request_id` propagé (`x-request-id`) |
+| `lib/server/api-helpers.ts` | `handleApi` : request_id → auth (`'required'` défaut / `'optional'` / `'public'` — ctx.user null, rate limit IP seul) → rate limit → Zod → run() → mapping erreur → `{ error: CODE }` |
+| `lib/server/dto.ts` | Mapping RPC → contrats (zod strict) ; `is_new_character` serveur ; hydratation 3 requêtes |
+| `app/api/**` (21 routes) | boosters open/open-premium/daily/state, cards burn+`[id]`+apply/reroll-cosmetic, collection+album, quests GET+claim, shop/buy, wishlist GET+toggle, themes/`[slug]`/pool-info, me/login-streak + **me/showcase**, **profiles/check-username**, **profiles/username**, **`u/[username]`** |
+| `scripts/smoke-engine.test.ts` | 8 scénarios vitest **Supabase local only** (garde hostname + `SMOKE_ENGINE_ALLOW_REMOTE=1`) : parallélisme 10 users, idempotence, pity L/M, doré ×10, daily 1/jour, **premium = 1 carte L min (85/15, corrigé post-0004)**, burn |
+| Migrations (toutes **poussées sur le cloud**, `supabase db push`) | 0003 RPC lecture ×8 · 0004 premium 1 carte · 0005 fix `_next_paris_midnight` (at time zone ambigu sur date — prouvé embarqué + cloud) · 0007 profil public/username/vitrine (0006 = service_role grants, Agent 0). Détail : `MIGRATIONS.md` |
+
+## État cloud vérifié (2026-10-12)
+
+`count(themes)=6` ✓ · `get_booster_state` live (`PROFILE_NOT_FOUND` métier, pas PGRST202) · `get_next_reset_at` exact après 0005 (22:00Z en CEST) · `check_username`/`get_public_profile` live (dispo + format + 404 `PROFILE_NOT_FOUND`).
 
 ## Évolutions de contrat `types/api.ts` (Agent A, droit porté — B code contre ce fichier)
 
-1. **`OpenPremiumBoosterResponse`** : `card: OpenedCardDto` → **`cards: OpenedCardDto[]`** — la RPC `open_premium_booster` roll 5 cartes (4 poids complets + slot garanti L/M, cf. commentaire d'intention 0001). `booster_count`/`cards_obtained_count` retirés (RPC ne les renvoie pas — resync via GET state) ; `theme_slug` ajouté.
-2. **`ClaimDailyPackResponse`** : resserré sur la réalité RPC (`cards, theme, next_reset_at, pity_×2, golden_counter`). Soldes retirés — resync via GET state.
-3. **`LoginStreakResponse` ajouté** (route `POST /api/me/login-streak` listée en SPEC §3 mais absente du fichier initial).
+1. `OpenPremiumBoosterResponse.card` (1 carte, L min — 0004).
+2. `ClaimDailyPackResponse` + **`is_golden`** (champ demandé par B — la RPC le renvoyait déjà).
+3. Ajoutés : `CheckUsernameResponse`, `SetUsernameResponse`, `SetShowcaseResponse`, `PublicProfileDto`/`GetPublicProfileResponse` (contrat exact pour `components/profile/use-public-profile.ts` — migrable tel quel).
+4. `CharacterSummaryDto.anime_title` : `string` → `string | null` (colonne nullable en 0000 — aligné sur le type régénéré).
 
 ## Demandes aux autres agents (ne pas contourner)
 
-- **Agent 0 — `lib/errors.ts`** (lecture seule pour A) : codes RPC manquants → mapping conservateur en attendant. `IDEMPOTENCY_IN_PROGRESS` → 429 `RATE_LIMITED` (retry, sémantique exacte) ; `QUEST_NOT_COMPLETED`, `NO_COSMETIC_TO_REROLL`, `PROFILE_NOT_FOUND`, `EMPTY_POOL`, `EMPTY_CLAIM`, `INVALID_WEIGHTS` → 500 `INTERNAL_ERROR` + log serveur. **Recommandé : ajouter `QUEST_NOT_COMPLETED` (409), `NO_COSMETIC_TO_REROLL` (409), `IDEMPOTENCY_IN_PROGRESS` (409) à l'enum.** Écart aussi : SPEC §5.1 étape 5 dit « Zod → 422 » mais `ERROR_HTTP_STATUS` fixe `VALIDATION_ERROR` à 400 — A suit lib/errors.ts (400).
-- **Agent 0 — `lib/validations/`** : schéma `collectionQuerySchema` (cursor/limit/theme/rarity/search/sort) actuellement inline dans `app/api/collection/route.ts` — à partager avec B (query string identique côté client).
-- **Agent 0 — grants service_role** : sur le projet cloud, le service_role n'a AUCUN grant table (constaté : `permission denied for table themes` avec hint GRANT) — les fixtures/scripts (dev-seed, smoke-engine) supposent les droits du setup local Supabase. À vérifier sur `supabase start` ; sinon ajouter les grants fixture (`characters` upsert, `profiles`/`drops_log` lecture) à 0000 ou une RPC de fixture.
-- **Agent B** : code contre les contrats évolués ci-dessus. `types/database.ts` section `Functions` étendue avec les 8 RPC 0003 (reflète le schéma additif — à régénérer par `supabase gen types` côté 0 pour vérification).
+- **Agent 0 — `lib/errors.ts`** : **`PROFILE_NOT_FOUND` (404) AJOUTÉ par A** (ordre utilisateur direct, à valider en review) — mappe proprement le 404 profil public ; `PROFILE_NOT_FOUND` n'est plus dans la liste des codes en mapping conservateur. Restent en attente : `QUEST_NOT_COMPLETED`, `NO_COSMETIC_TO_REROLL`, `IDEMPOTENCY_IN_PROGRESS`, `EMPTY_POOL`, `EMPTY_CLAIM`, `INVALID_WEIGHTS` → 500 conservateur.
+- **Agent 0 — P0 sécurité (pattern hérité 0001, à trancher)** : aucune RPC ne vérifie `p_user = auth.uid()` ; un user authentifié peut passer l'uuid d'un autre. Pattern proposé : `auth.uid() is null or p_user = auth.uid()` (laisse passer service_role). Affecte TOUTES les RPC 0001+0003+0007.
+- **Agent 0 — CI (juge de paix)** : `.github/workflows/ci.yml` exécute `supabase db reset` + 2 vérifications psql mais **PAS `npm run test`** → les 8 scénarios de concurrence (jamais deux fois le même print) ne tournent nulle part. Ajouter dans le job `supabase` (après db reset) : `actions/setup-node` + `npm ci` + env `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` + `SUPABASE_SERVICE_ROLE_KEY=<clé locale>` + `npm run test`. Le commentaire du job mentionne encore « 0000 → 0001 → 0002 » (0003-0007 ajoutées depuis).
+- **Agent 0 — `lib/config.ts`** : commentaire ligne 51 « (gratuit, premium et daily) » obsolète (`cardsPerBooster` ne s'applique plus au premium depuis 0004).
+- **Agent 0 — `supabase/config.toml`** : absent du repo ; créé par A via `supabase init` pour le `db push`. À reprendre/review et commiter.
+- **Agent 0 — `lib/validations/`** : `collectionQuerySchema` inline dans `app/api/collection/route.ts` + schémas username/showcase inline dans les nouvelles routes — à partager.
+- **Agent B** : les 3 endpoints demandés sont live (contrats ci-dessus). `lib/supabase/server.ts` ré-exporte `lib/server/` : toute évolution de fabrique de client se fait côté `lib/server/supabase.ts`. `types/database.ts` section Functions étendue (RPC 0003+0007) — à régénérer par `supabase gen types`.
 
 ## Vérifications effectuées / limites
 
-- `npx tsc --noEmit` : **zéro erreur sur tout le périmètre A** (app/api, lib/server, types, scripts). Le typecheck global reste bloqué par un fichier **Agent B** : `components/legal/legal-page.tsx` contient `.../(legal)/*/page.tsx` dans une JSDoc → la séquence `*/` ferme le commentaire (erreur TS1003/TS1161) — à corriger côté B (hors périmètre A).
-- `npx eslint` sur le périmètre A : 0 erreur, 0 warning.
-- `npm run test` (vitest) : 8 scénarios smoke **SKIPpés volontairement** — `.env.local` pointe vers le **projet cloud** (`pshtqndklfbtrjhprrua.supabase.co`) et le smoke-engine est verrouillé **local-only** (SPEC §8 ; override explicite `SMOKE_ENGINE_ALLOW_REMOTE=1` pour staging jetable). Tests unitaires C (28) verts. **À exécuter en CI : `supabase start` + `supabase db reset` (+ `supabase db push` pour 0003) puis `npm run test`.**
-- Rate limiter + request_id vérifiés par exécution réelle (tsx) : 1 open/2 s par user, buckets IP indépendants, header uuid repris/regénéré.
-- `next build` non vérifiable en l'état : `next.config.ts` (B) importe `@serwist/next` non installé — dépendance du périmètre B.
-- **Les 17 routes n'ont pas pu être exercées HTTP bout-en-bout** (build B bloqué + 0003 non appliquée nulle part). L'intégrité économique est couverte par le smoke-engine (RPC-level) ; la couche HTTP (auth/Zod/rate limit/mapping) est couverte par tsc + revue. C'est la dette principale de cette passe.
-
-## Dettes / décisions Agent A
-
-1. `POST /api/quests/claim` : le schéma `claimQuestsSchema` exige une `idempotency_key` mais la RPC `claim_quests` n'en prend pas (idempotente par jour) — la clé est acceptée au contrat et ignorée au transport.
-2. `is_new_character` : garde de dérive d'horloge 3 s (Vercel/Supabase NTP-synced) ; un doublon du même perso dans LA MÊME ouverture est correctement marqué (la borne est capturée avant la RPC).
-3. Recharge de stock : la logique ne vit que dans `open_booster` (RPC 0001). `GET /api/boosters/state` renvoie `next_recharge_at` tel quel (aucune recharge simulée en lecture — la RPC d'ouverture crédite le dû, conformément au schéma qui conditionne le stock à `last_booster_recharge`).
-4. `handleApi` logge les 4xx métier en `info`/`warn` (error_code brut RPC en warn) et les 5xx en `error` — aucune donnée sensible.
+- `npx tsc --noEmit` : zéro erreur périmètre A ; 0 erreur dans `lib/supabase` (unification sans régression B).
+- `npx eslint` périmètre A : 0 erreur/warning. `npx vitest run` : 32 verts, 8 smoke skipés (garde local-only voulue).
+- Smoke économique sur vraie base : **toujours non exécuté localement (pas de Docker)** — la CI doit le faire (voir demande ci-dessus). Bout-en-bout HTTP des 21 routes : non exercé (auth navigateur requise) — le smoke manuel via l'app reste le juge.
+- `next build` : vert côté B (B a résolu `@serwist/next` — plus bloquant).
 
 ---
 

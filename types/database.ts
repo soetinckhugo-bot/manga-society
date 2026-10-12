@@ -123,6 +123,7 @@ export type Database = {
           login_streak: number
           last_login_date: string | null
           daily_pack_claimed: string | null
+          showcase_card_ids: string[]
           created_at: string
         }
         Insert: {
@@ -139,6 +140,7 @@ export type Database = {
           login_streak?: number
           last_login_date?: string | null
           daily_pack_claimed?: string | null
+          showcase_card_ids?: string[]
           created_at?: string
         }
         Update: {
@@ -155,6 +157,7 @@ export type Database = {
           login_streak?: number
           last_login_date?: string | null
           daily_pack_claimed?: string | null
+          showcase_card_ids?: string[]
           created_at?: string
         }
         Relationships: [
@@ -633,6 +636,96 @@ export type Database = {
         Args: {
           p_user: string
           p_character_id: string
+        }
+        Returns: Json
+      }
+      /**
+       * RPC de LECTURE (migration additive 0003, Agent A — cf. MIGRATIONS.md).
+       * Aucune mutation économique ; EXÉCUTE accordé à authenticated +
+       * service_role, révoqué à anon/public.
+       */
+      get_booster_state: {
+        Args: {
+          p_user: string
+        }
+        Returns: Json
+      }
+      get_collection_page: {
+        Args: {
+          p_user: string
+          p_cursor?: Json
+          p_limit?: number
+          p_theme?: string
+          p_rarity?: string
+          p_search?: string
+          p_sort?: string
+        }
+        Returns: Json
+      }
+      get_album: {
+        Args: {
+          p_user: string
+        }
+        Returns: Json
+      }
+      get_card_detail: {
+        Args: {
+          p_user: string
+          p_card_id: string
+        }
+        Returns: Json
+      }
+      get_daily_quests: {
+        Args: {
+          p_user: string
+        }
+        Returns: Json
+      }
+      get_wishlist: {
+        Args: {
+          p_user: string
+        }
+        Returns: Json
+      }
+      get_theme_pool_info: {
+        Args: {
+          p_user: string
+          p_slug: string
+        }
+        Returns: Json
+      }
+      get_next_reset_at: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      /**
+       * RPC profil public (migration additive 0006, Agent A — cf. MIGRATIONS.md).
+       * check_username / get_public_profile : lecture publique (anon ok).
+       * set_username / set_showcase : session requise.
+       */
+      check_username: {
+        Args: {
+          p_username: string
+        }
+        Returns: Json
+      }
+      set_username: {
+        Args: {
+          p_user: string
+          p_username: string
+        }
+        Returns: Json
+      }
+      set_showcase: {
+        Args: {
+          p_user: string
+          p_card_ids: string[]
+        }
+        Returns: Json
+      }
+      get_public_profile: {
+        Args: {
+          p_username: string
         }
         Returns: Json
       }

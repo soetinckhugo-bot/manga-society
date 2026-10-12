@@ -16,6 +16,9 @@ export const APP_ERROR_CODES = [
   'USERNAME_TAKEN',
   /** Username invalide (format longueur/caractères) (422). */
   'INVALID_USERNAME',
+  /** Profil public demandé introuvable (username inconnu) (404). Ajouté par
+   *  l'Agent A pour les endpoints profil — à valider en review Agent 0. */
+  'PROFILE_NOT_FOUND',
 
   // --- Validation / transport ---
   /** Corps de requête invalide selon le schéma Zod partagé (400). */
@@ -81,6 +84,7 @@ export const ERROR_HTTP_STATUS: Record<AppErrorCode, number> = {
   UNAUTHENTICATED: 401,
   USERNAME_TAKEN: 409,
   INVALID_USERNAME: 422,
+  PROFILE_NOT_FOUND: 404,
   VALIDATION_ERROR: 400,
   RATE_LIMITED: 429,
   NO_BOOSTER: 409,

@@ -78,6 +78,61 @@ test (`scripts/smoke-engine.test.ts` : 1 carte L/M au lieu de 5 avec slot).
 mentionne encore le premium dans `cardsPerBooster: 5` — commentaire à jour
 par l'Agent 0 (`cardsPerBooster` ne s'applique plus au premium).
 
+## 0005_fix_next_reset_at.sql — Correctif calcul du prochain minuit Paris (Agent A)
+
+**Motif (bug de calcul de date)** : `_next_paris_midnight` (0003) appliquait
+`at time zone 'Europe/Paris'` à une valeur `date`. Le cast implicite
+date → timestamp/timestamptz est résolu différemment selon la version Postgres
+et le fuseau de session (prouvé empiriquement : minuit UTC sur PG embarqué,
+« wall time Paris re-étiquetée UTC » sur le cloud PG 15 — décalage de +2 h
+été / +1 h hiver). Constats à 2026-10-11 20:23 UTC : attendu
+`2026-10-11T22:00Z`, cloud renvoyé `2026-10-12T02:00Z`.
+
+**Correction** : cast EXPLICITE en `timestamp without time zone` avant
+`at time zone` — variante documentée « heure murale interprétée dans la zone »,
+produisant l'instant UTC exact du prochain minuit Europe/Paris (22:00Z été,
+23:00Z hiver — vérifié des deux côtés sur Postgres embarqué, puis re-vérifié
+sur le cloud après push : exact).
+
+**Impact** : `next_reset_at` affiché (booster state, quêtes, POST daily pack).
+La logique de claim (comparaison de dates via `_paris_today`, date pure) n'était
+PAS affectée. `create or replace` du helper, revoke EXECUTE reaffirmé.
+
+## 0007_profile_rpcs.sql — RPC profil public + username + vitrine (Agent A)
+
+**Motif (intégration Agent B, bloquante)** : onboarding (choix du username,
+dispo temps réel) et page publique `/u/[username]` (SPEC §3) sans support
+serveur : `profiles`/`user_cards`/`wishlists` sont en RLS propriétaire, et
+aucune colonne ne stockait la vitrine.
+
+**Contenu (additif)** :
+
+| Fonction | Endpoint | Accès |
+|---|---|---|
+| `check_username(text)` | GET /api/profiles/check-username | public (anon) |
+| `set_username(uuid, text)` | POST /api/profiles/username | auth |
+| `set_showcase(uuid, uuid[])` | POST /api/me/showcase | auth |
+| `get_public_profile(text)` | GET /api/u/[username] | public (anon) |
+
+Plus `alter table profiles add column showcase_card_ids uuid[]` (≤ 5 cartes,
+ordre = position ; sans FK volontairement — une carte brûlée disparaît de la
+vitrine au prochain set_showcase).
+
+Conventions : `SECURITY DEFINER` + `SET search_path = public`, EXECUTE révoqué
+à PUBLIC/anon puis accordé explicitement (les lectures publiques à anon —
+données publiques par design). Codes RPC : `USERNAME_TAKEN` (unique citext,
+catch `unique_violation`), `INVALID_USERNAME` (regex `^[a-z0-9_-]{3,20}$`,
+duplication serveur documentée du pattern client), `PROFILE_NOT_FOUND`,
+`CARD_NOT_FOUND` / `NOT_OWNER` (vitrine), `VALIDATION_ERROR` (> 5, filet).
+
+**Note numérotation** : 0006 = `service_role_grants.sql` (Agent 0, grants
+characters). Ce fichier a été renommé 0007 pour préserver l'ordre.
+
+**À valider par l'Agent 0** : ajout du code `'PROFILE_NOT_FOUND'` (404) dans
+`lib/errors.ts` (ordre utilisateur direct — le code manquait pour un 404 propre
+des profils publics ; tous les endpoints existants bénéficient du mapping
+`PROFILE_NOT_FOUND` au lieu d'un conservateur 500).
+
 ## 0006_service_role_grants.sql — Grant service_role sur characters (Agent C)
 
 **Motif (bug bloquant pour le périmètre Agent C)** : `0000_schema` révoque tout
