@@ -250,7 +250,14 @@ inflationniste ×2,8). Décision design requise — hors gravité de code.
   `IS_CONFIGURED` skippait sans échec (CI verte trompeuse). Corrigé dans
   `.github/workflows/ci.yml` : clés locales = JWT démo standards (aucun
   `jwt_secret` custom dans `supabase/config.toml`) + **garde anti-skip** qui
-  fait échouer le job si un fichier DB est skippé.
+  fait échouer le job si un fichier DB est skippé. **Second strate trouvée en
+  lisant le log du run** : le job `supabase` n'avait jamais de `npm ci`, donc
+  `vitest: not found` (exit 127), et le pipe `| tee` avalait l'exit code (le
+  shell GH Actions est `bash -e`, pas `pipefail`) → job vert avec **zéro test
+  exécuté**. Corrigé : `npm ci` ajouté avant l'étape Tests + `set -o pipefail`
+  + garde de non-exécution (`grep '^ Test Files'` obligatoire dans le récap
+  vitest). Trois défenses indépendantes désormais : pipefail, garde récap,
+  garde anti-skip.
 
 - Les 41 tests DB n'ont tourné que **sur le cloud** (pas de Docker sur ce
   poste) ; leur premier run en CI locale (Docker, migrations 0000→0008) reste
