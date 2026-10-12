@@ -48,7 +48,11 @@ export const GAME_CONFIG = {
   },
 
   booster: {
-    /** Nombre de cartes par ouverture de booster (gratuit, premium et daily). */
+    /**
+     * Nombre de cartes par ouverture de booster gratuit (daily inclus).
+     * Ne s'applique PAS au booster premium : 10 points = 1 carte Légendaire
+     * minimum (cf. premium.minRarity / premium.weights, migration 0004).
+     */
     cardsPerBooster: 5,
 
     /**

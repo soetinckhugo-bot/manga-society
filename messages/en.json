@@ -139,6 +139,7 @@
   },
   "errors": {
     "UNAUTHENTICATED": "You need to be logged in to do that.",
+    "FORBIDDEN": "You can only act on your own account.",
     "USERNAME_TAKEN": "This username is already taken.",
     "INVALID_USERNAME": "This username is not valid.",
     "VALIDATION_ERROR": "Invalid request.",
@@ -156,6 +157,7 @@
     "THEME_NOT_FOUND": "Theme not found.",
     "QUEST_NOT_FOUND": "Quest not found or inactive today.",
     "COSMETIC_NOT_OWNED": "You don't own this cosmetic.",
+    "ALREADY_OWNED": "You already own this cosmetic.",
     "COSMETIC_SLOT_TAKEN": "This slot is already taken on this card.",
     "INVALID_COSMETIC_TYPE": "This cosmetic doesn't match that slot.",
     "INTERNAL_ERROR": "Internal error. Try again in a moment.",

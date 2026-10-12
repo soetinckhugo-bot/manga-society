@@ -38,6 +38,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "fast-check": "^4.10.2",
     "supabase": "^2.120.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",

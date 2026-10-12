@@ -447,240 +447,88 @@ Budget first-load JS < 200 KB gzip non mesuré (à la charge d'E).
 c'est `proxy.ts` en Next 16 ; le fallback offline est `/fr/offline` (toutes
 les pages sont sous préfixe de locale).
 
----
-
-# HANDOFF — Agent D (PROMPT D, Juice & Polish)
-
-> Branche `agent/juice`, 5 commits par sujet (assets → game-card → opening →
-> i18n → handoff). Placeholders « PLACEHOLDER AGENT B » remplacés
-> (`components/game-card/`, `components/booster-opening/`).
-
-## Livré (périmètre D)
-
-| Fichier | Contenu |
-|---|---|
-| `scripts/generate-assets.mjs` | Génération procédurale : SVG artisanal → PNG via `sharp` (déjà dans node_modules, dép transitif — NON ajouté au package.json) ; synthèse PCM déterministe → WAV. **Nouveau fichier hors cartographie SPEC §2.7** (aucun slot « assets » prévu) — à ratifier. Régénération : `node scripts/generate-assets.mjs` |
-| `public/packs/{shonen,shojo,webtoon,big3,seinen,isekai,mix}.png` | Pack arts 3:4, kanji médaillon (少/花/文/王/青/異/混), accent de thème, ~200 Ko chacun (palette quantifiée, budget 4G/precache PWA). **Chemins déjà seedés dans `themes.pack_art_url`** → la grille B les affiche dès maintenant |
-| `public/card-back.png` | Verso seigaiha sombre + médaillon or 漫 (2.5:3.5 rendu 5/7), 148 Ko |
-| `public/sounds/*.wav` ×8 | tear/flip/rare/epic/legendary/mythic/coin/click, 4–79 Ko (budget < 200 KB respecté). **Format WAV et non mp3** : aucun encodeur MP3 disponible hors-ligne ; WAV = synthèse maison, CC0 par construction, lecture universelle. Prompts IA de remplacement : `assets/prompts.md` |
-| `components/game-card/` | Carte définitif : ratio TCG 5/7, 6 cadres rareté (tokens `--rarity-*`), gems d'angle Épique+, halo animé L/M (opacity), print gravé `#NNNN/total` sur l'image + badge tier (config `printVisualTiers`, shimmer transform-only), code rareté TCG, overlays css_config défensifs (frame/holo/dye), tilt desktop, fallback silhouette. **Contrat de props inchangé** (`{card, variant}`) |
-| `components/effects/` | `Tilt` (pointer fin, rAF, mutations DOM directes, will-change parcimonieux) + `useReducedMotion` (useSyncExternalStore, cacheComponents-safe) |
-| `components/booster-opening/` | Séquence complète : tear-screen (drag pointer + fallback bouton, confettis, halo) → reveal-deck (state machine, Espace/maintenir/Échap, Tout révéler) → card-reveal (flip 3D, intensité C→M) → recap (éventail, meilleure carte, copier le lien, **PNG 1200×630 via canvas maison** : satori/resvg/html-to-image non installés, zéro-dep choisi + silhouette de repli CORS) + particles canvas (< 300 nœuds, DPR capé 2) + sounds WebAudio (unlock 1er geste, preload tear/flip) |
-| `messages/{fr,en}/opening.json` | Namespace `opening` déposé selon la convention de fusion (aucun fichier B touché), parité fr/en |
-
-## Contrat B↔D
-
-- `GameCardProps` / `BoosterOpeningProps` : **signatures stables respectées**.
-- `BoosterOpening` gagne 2 props **optionnelles additives** : `packSlug`,
-  `packName` (défaut `mix`). Sans elles la séquence marche (pack générique).
-- Aucun rendu carte hors `game-card/` détecté (B avait déjà tout
-  centralisé) → **aucun refactor nécessaire**.
-
-## Demandes
-
-- **Agent B — câblage pack art (actionnable tel quel, périmètre B)** :
-  1. Fichier : `components/boosters/boosters-page.tsx` (seul endroit qui
-     monte `<BoosterOpening>`, lignes ~97-103) — D n'a PAS touché ce
-     fichier, à toi de l'éditer.
-  2. Élargir `OpeningState` pour porter le pack :
-     ```ts
-     interface OpeningState {
-       cards: OpenedCardDto[];
-       isGolden: boolean;
-       packSlug?: string;   // slug thème, ex. 'shonen' | 'mix'
-       packName?: string;   // nom déjà localisé (name_fr/name_en selon locale)
-     }
-     ```
-  3. Au montage : `<BoosterOpening cards isGolden onComplete
-     packSlug={opening.packSlug} packName={opening.packName} />`.
-  4. Renseigner les valeurs : `ThemePanel.onOpened` connaît le thème
-     sélectionné (`selectedTheme.slug` + nom localisé du `ThemeDto`) ;
-     pour `DailyPackWidget`, la réponse `ClaimDailyPackResponse.theme`
-     (`ThemeDto.slug` + nom) est disponible dans le handler — la passer
-     dans le callback `onOpened` (signature du callback à élargir chez B).
-  5. Contrat côté D (déjà livré, `components/booster-opening/booster-opening.tsx`) :
-     ```ts
-     packSlug?: string; // défaut 'mix' ; slugs acceptés: shonen|shojo|webtoon|big3|seinen|isekai|mix (inconnu → 'mix')
-     packName?: string; // défaut: 'Booster Mix' traduit (namespace opening.themes)
-     ```
-  6. Fallback actuel sans câblage : pack générique `mix` + nom traduit —
-     la séquence est déjà fonctionnelle, ce câblage n'est que du polish.
-  7. Bonus (pas demandé) : `.buttonShimmer` exporté dans
-     `game-card.module.css` si tu veux un shimmer sobre sur tes boutons
-     premium.
-- **Agent E** : Definition of Done perf **non mesurée ici** (pas de
-  DevTools dans cet environnement). Procédure exacte à exécuter telle
-  quelle (Chrome DevTools, onglet Performance) :
-  1. `npm run build && npm start`, ouvrir `/fr/boosters`, login seed,
-     DevTools → Performance : Network throttling **Fast 4G**, CPU
-     **4× slowdown**, `Disable cache` coché.
-  2. Scénario A (nominal) : déchirure complète par drag → laisser la
-     séquence jouer les 5 reveals sans intervention (~20-25 s).
-  3. Scénario B (skip) : Échap pendant le reveal → récap.
-  4. Scénario C (Mythique) : dev-seed un booster dont une carte est M
-     (ou forcer `cards[0]` mythic en dev) → reveal de cette carte.
-  5. Pour chaque scénario : enregistrer, relever **% de frames dropées**
-     (frames > 50 ms dans le thread principal) et jank longues tâches.
-     **DoD : frame drops < 5 %** sur les 3 scénarios. Comparer aussi avec
-     `prefers-reduced-motion: reduce` activé (doit être plat).
-  6. Points de vigilance si rouge : halo/rays (opacity/conic ok mais le
-     blur ?), canvas particules (doit rester < 300 nœuds et DPR ≤ 2 —
-     vérifier `devicePixelRatio` de la machine de test), `backdrop-blur`
-     de l'overlay (déjà suspect n°1 sur mobile réel).
-- **Agent 0 / orchestrateur** : `scripts/generate-assets.mjs` nouveau
-  fichier (voir Livré). Sons WAV vs mp3 de la spec (voir Livré).
-
-## Vérifications effectuées
-
-- `npx tsc --noEmit` : 0 erreur hors `tests/` (dossier **non suivi**,
-  travail en cours Agent E dans l'arbre partagé — ne pas committer).
-- `npx eslint` périmètre D : 0 erreur, 0 warning (React 19 :
-  `react-hooks/refs` respecté — pas d'accès ref pendant le render).
-- `next build` : à tourner côté CI (voir sujet suivant dans ce handoff).
-
-## Limites connues
-
-- PNG de partage : si CORS AniList refuse le canvas (tain), les cartes
-  sont dessinées en silhouette — le PNG est toujours généré.
-- Booster MIX : `open_booster` doit accepter `theme_slug='mix'` (déjà
-  signalé par C) ; l'asset `mix.png` est prêt et le fallback l'utilise.
-
 
 ---
 
-# HANDOFF — Agent E (QA & Économie)
+# HANDOFF — Agent 0 (HOTFIX PRÉ-PROD : migration 0008 + cloud + CI)
+
+> Passe du 12 oct. 2026. DoD : CI verte de bout en bout avec `npm run test`,
+> scénario d'attaque d'E rejoué sur le cloud (bloqué), QA_REPORT §1–6 passés
+> en « corrigé (0008) » avec preuves. Statut : **cloud convergé et vérifié ;
+> CI en cours sur la PR** (voir plus bas).
 
 ## Livré
 
-- **Property tests RNG** : `tests/rng.property.test.ts` — 100k rolls à ±0,3 pt des
-  poids (booster/doré/daily/premium), propriétés fast-check (bornes, monotonie,
-  somme 100), chi² d'uniformité `_pick_character` (pools 2→1 000). fast-check
-  ajouté en devDependency.
-- **Tests métier** : `tests/economy.business.test.ts` (13 tests : daily 1/j strict,
-  streak J1/J7/reset/trou, cap wishlist, points premium aux frontières, doré
-  cross-type, reset pity, quête `obtain_epic_plus`, idempotence `claim_quests`,
-  double achat cosmétique, reroll sans cosmétique).
-- **Tests concurrence** : `tests/concurrency.test.ts` (idempotence clé ×5, pool
-  d'1 perso = 200 prints distincts, burn pendant ouvertures parallèles, recharge
-  jamais négative).
-- **Garde config** : `tests/config-drift.test.ts` — le SQL live ne dérive pas de
-  `lib/config.ts` (poids, pity 25/200, doré, recharge, burn table, premium).
-- **Fixtures/CI** : `tests/helpers.ts` (garde local-only stricte : jamais de test
-  DB sur le cloud sauf `SMOKE_ENGINE_ALLOW_REMOTE=1`, users jetables, retry,
-  cleanup). Les tests DB tournent en CI locale comme le smoke engine de A —
-  **premier run à faire là-bas** (pas de Docker sur le poste d'E).
-- **Audit RLS/RPC** : `tests/rls-audit.test.ts` (16/16 exécutés sur cloud,
-  isolation table par table, readbacks cross-user), `scripts/audit-cloud.ts`
-  (9 preuves), `scripts/probe-cloud.ts` (read-only), `scripts/purge-cloud-fixtures.ts`.
-- **Simulation économique** : `scripts/sim-economy.ts` — Monte-Carlo déterministe
-  50 joueurs × 30 jours, réplique vérifiée ligne par ligne contre 0001
-  (pity à compteur, doré ×2 non appliqué au daily, premium = 4 rolls + slot
-  garanti 85/15, streak SQL). Rapports : `report-economy.md` + 3 variantes
-  (`pity-reset-naturel`, `streak-config`, `wishlist-avg 1000`).
-- **Documents** : `QA_REPORT.md` (trous classés P0/P1/P2), `ECONOMY_PATCH.md`
-  (leviers L1–L5 chiffrés avant/après — E ne décide rien).
+- **`supabase/migrations/0008_hotfix_preprod.sql`** (additive, 0001 jamais
+  éditée en place) :
+  1. `_assert_self(uuid)` — garde E-01 (`auth.uid() null` ⇒ service_role et
+     scripts passent) en tête des **21 RPC** (12×0001 + 7×0003 +
+     `set_username`/`set_showcase` ; `get_public_profile` corrigée via sa
+     jointure `characters.base_rarity`, E-07).
+  2. Verrou de tête `profiles … for update` AVANT `_idempotency_begin` dans
+     toutes les mutations (anti-deadlock 40P01 idempotence↔recharge FK —
+     trou pré-existant 0001, exécuté pour la première fois par la CI).
+  3. `toggle_wishlist` : `p_max_slots int default 10`, cap réel, rollback
+     propre (E-02). `update_login_streak` : `p_chakra_by_day`/`p_cosmetic_reward_day`
+     alignés sur `lib/config.ts` (E-03). `buy_cosmetic` : `ALREADY_OWNED` avant
+     débit + lock advisory (E-04). `reroll_cosmetic` : `EMPTY_POOL` avant débit,
+     exclusion de l'inventaire. `claim_daily_pack` progresse `obtain_epic_plus`
+     (E-05). Drops des anciennes signatures `(uuid,uuid)` / `(uuid)`.
+  4. **Fix `due` négatif** (vol de booster, bug pré-existant 0001) :
+     `greatest(0, floor(…))` — mécanisme complet dans QA_REPORT addendum §3.
+  5. **Fix `burn_card`** : alias `c.base_rarity` → `ch.base_rarity` (42703 à
+     chaque appel depuis 0001 — jamais exécuté faute de Docker).
+  6. Grants service_role minimal (E-08) + `drop function` des signatures non
+     gardées.
+- **Code support** : `lib/errors.ts` (`FORBIDDEN` 403, `ALREADY_OWNED` 409),
+  `lib/server/api-helpers.ts` (+2 mappings RPC — fichier d'A, cross-périmètre
+  justifié), `messages/fr|en.json` (clés i18n, sans quoi next-intl crashe).
+- **Tests E** : bascule des `it.fails` concernés en assertions normales ;
+  nouveau test de régression E-01 (16 RPC cross-user, état de B inchangé) ;
+  **2 corrections de tests justifiées** (QA_REPORT addendum « Corrections de
+  tests » : reset pity/vague sur le pool d'1 perso — contrat SPEC ; isolation
+  par user à la place du marqueur d'horloge client — skew NTP mesuré).
+- **CI** (`.github/workflows/ci.yml`) : `npm run test` dans le job supabase
+  (demande d'A) + **vraie clé anon locale** extraite via `supabase status`
+  (requis par les sign-ins de `rls-audit`), commentaire 0000→0008.
+- **Cloud** : 0008 appliquée (repair/re-push, deux amendements), purge
+  physique des 72 fixtures (**0 restante / 5 000**, 0 user QA), migration
+  list **0000→0008 aligné**.
 
-## Écarts trouvés (détail et preuves dans QA_REPORT.md)
+## Vérifications exécutées (cloud, SMOKE_ENGINE_ALLOW_REMOTE=1)
 
-- **P0 — E-01** : aucune RPC ne vérifie `p_user = auth.uid()` → un joueur agit
-  sur le compte d'un autre (preuves cloud : booster, daily, wishlist, profil,
-  achat). Fix suggéré par A (garde `auth.uid()` en tête de RPC). **Agent 0**.
-- **P1 — E-02** : cap wishlist 10 absent (`WISHLIST_FULL` jamais levé ; 12
-  entrées acceptées sur cloud). **Agent 0** (RPC).
-- **P1 — E-03** : streak SQL `least(streak,10)*5` ≠ `chakraByDay` de la config
-  (J1 = 5 live ; standard n°12). **Agent 0**.
-- **P1 — E-04** : rachat d'un cosmétique possédé = double débit silencieux
-  (`ON CONFLICT DO NOTHING` après débit). **Agent 0**.
-- **P1 — E-07** : `get_public_profile` (0007) plante `column uc.rarity does not
-  exist` → `/u/[username]` cassée dès qu'un joueur a des cartes. **Agent 0**.
-- **P1 — E-08** : grants service_role du cloud limités à `characters` (0006) —
-  les scripts hors RPC (dev-seed, refill smoke) cassent en prod alors que le
-  local passe tout (CI localement verte). **Agent 0** (grants explicités).
-- **P2 — E-05** : daily pack sans progression `obtain_epic_plus`. **Agent 0**.
-- **P2 — E-06** : booster MIX toujours non câblé (thème `mix` absent du seed,
-  pas de branche RPC) — décision V1 de C en suspens, asset D prêt. **Agent 0**.
-- **P2 — E-09** : CSP prod avec `'unsafe-eval'`/`'unsafe-inline'` (headers()
-  identique dev/prod ; commentaire de `next.config.ts` mensonger). **Agent B**.
-- **P2 — E-10** : variables Discord fantômes dans `.env.example`
-  (`DISCORD_REDIRECT_URI` → route inexistante ; rien n'utilise ces vars).
-  **Agent B/0**.
-- **Économie** (ECONOMY_PATCH.md) : pas de puits après épuisement boutique ~J26
-  (stock +~600/j) ; daily pack = 48 % des L ; multiplicateur wishlist
-  inflationniste (×2 demande → ×2,8 stock) ; recharge exploitable ~250 ouv./jour.
-  Décisions design requises.
+- `tests/concurrency.test.ts` **4/4 × 2 runs** (40 opens/vagues, burns
+  parallèles, même clé ×5, recharge jamais < 0).
+- `tests/rls-audit.test.ts` **17/17** — attaque d'E rejouée : 16 RPC
+  cross-user `FORBIDDEN`, aucune écriture chez B, profil public OK.
+- `tests/economy.business.test.ts` **14/14** ; `rng.property` +
+  `config-drift` **33/33**.
+- `npx next typegen && tsc --noEmit` propres ; `npm run lint` propre.
 
-## Demandes (ne pas contourner)
+## Décisions d'architecte à connaître
 
-- **Agent 0** : E-01 → E-08 sont tous en migrations/RPC/seeds — priorité E-01
-  avant toute ouverture du cloud à des vrais joueurs. Les `it.fails` des tests E
-  passent au rouge quand le trou est corrigé (c'est leur rôle : les basculer en
-  attendu fait partie du fix). Registre owner/fichier racine : QA_REPORT.md.
-- **Agent A** : la couverture smoke de `get_public_profile` ne teste que le 404
-  (E-07 a filtré) ; ajouter un cas avec cartes une fois 0 corrigé.
-- **Agent B** : E-09 (CSP prod), E-10 (.env.example).
-- **Tous** : ne pas « réparer » les `it.fails` en les supprimant — chacun
-  référence un trou documenté dans QA_REPORT.md.
+- **Repair/re-push** : 0008 amendée deux fois après application ; à chaque
+  fois `supabase migration repair --status reverted 0008 --linked` puis
+  `db push`. Le fichier local est la vérité, le cloud est revenu à l'identique.
+- **Diagnostics SQL** : des RPC d'audit temporaires (migration 0009) ont été
+  nécessaires pour isoler la cause pity ; **toutes reverted et purgées**
+  (leçon : tout insert loggué dans une transaction qui re-raise est rollback —
+  capturer via le message d'erreur, pas une table). File finale : 0000→0008.
+- **§5 « convergence » retirée** : une théorie « cap prints 100 » s'est
+  révélée fausse (corrélation fallacieuse avec le pity 25 opens = 100 cartes) ;
+  la section canonique a été retirée de 0008 pour la reviewabilité. Les corps
+  cloud ont été vérifiés byte-par-byte (`pg_get_functiondef`) — le cloud
+  n'avait en fait pas dévié sur ces helpers.
+- **Pity × pool dégénéré** (edge connu, SPEC-compliant) : thème sans perso du
+  tier forcé ⇒ `EMPTY_POOL` permanent (le rollback annule le reset de pity).
+  Les thèmes prod couvrent les 6 tiers ; documenté dans QA_REPORT.
 
-## Les 41 tests skippés localement — attendus au premier run CI
+## Demandes restantes (non bloquantes)
 
-Ils sont skippés ici par garde (`tests/helpers.ts` refuse tout run DB hors
-Supabase local) ; le job `supabase` de la CI démarre la stack locale puis lance
-`npm run test`, donc **leur premier exécution réelle sera le run CI de la PR
-agent/qa**. Attendu : les 3 `it.fails` AUTHZ (E-01) et les `it.fails` E-02/E-03/
-E-05/E-06 passent (le trou y est encore) ; tout le reste passe au vert.
-
-- `scripts/smoke-engine.test.ts` (8 — Agent A, déjà verts en CI) : prints
-  dupliqués ×10 users parallèles ; idempotence clé ×3 ; pity L 25 ; pity M 200 ;
-  doré toutes les 10 ; daily 1/j Épique+ idempotent ; premium 10 pts 85/15 ;
-  burn ownership/crédit/idempotence.
-- `tests/rls-audit.test.ts` (16 — exécutés sur cloud pendant l'audit, premier
-  run local en CI) : 12 tests d'isolation table par table + readbacks ;
-  **`it.fails` « get_public_profile fonctionne » (E-07)** ; **`it.fails` ×3
-  AUTHZ open_booster / toggle_wishlist / set_username cross-user (E-01)**.
-- `tests/economy.business.test.ts` (13 — jamais exécutés) : streak J1→J6 vs
-  config, no-op même jour, reset après trou, J7 cosmétique ; **`it.fails` cap
-  wishlist (E-02)** ; toggle wishlist couple wishlist_count ; points premium
-  frontières 99→104 / 195→200 ; doré cross-type au 10e ; pity L reset visible ;
-  **`it.fails` obtain_epic_plus daily (E-05)** ; claim_quests idempotent ;
-  **`it.fails` double achat cosmétique (E-04)** ; reroll sans cosmétique.
-- `tests/concurrency.test.ts` (4 — jamais exécutés) : burn pendant ouvertures
-  parallèles ; même idempotency_key ×5 = 1 débit ; pool d'1 perso = 40 prints
-  distincts ; recharge jamais < 0.
-
-## Statut fixtures cloud (72 personnages)
-
-Physiquement présents sur le cloud, **neutralisés** (`themes = []` → hors pool
-de tirage, inoffensifs pour l'économie), non supprimés car 0006 ne grante pas
-DELETE sur `characters` au service_role (E-08). Purge physique = décision Agent 0
-(hotfix 0008). Les 2 users de test, eux, sont supprimés (purge re-verifiée en
-fin de passe).
-
-## Perf séquence D — procédure et statut
-
-Definition of Done perf confiée à E par la section D (HANDOFF.md lignes
-511-529) : **non mesurée sur ce poste** (pas de Chrome DevTools dans cet
-environnement). Procédure à exécuter telle quelle au prochain poste équipé —
-`npm run build && npm start`, `/fr/boosters`, DevTools → Performance, Fast 4G +
-CPU 4× + Disable cache ; 3 scénarios (nominal ~20-25 s, Échap→récap, reveal
-Mythique) ; **DoD : frame drops < 5 %** sur les 3, et plat sous
-`prefers-reduced-motion: reduce`. Points de vigilance si rouge : blur halo/rays,
-canvas particules (< 300 nœuds, DPR ≤ 2), `backdrop-blur` de l'overlay.
-Reportée à la V1.1 (re-audit E) ou à l'orchestrateur.
-
-## Vérifications effectuées
-
-- Cloud (audit autorisé, users de test, nettoyage après) : RLS 16/16, 9 preuves
-  d'exploitation cross-user, purge confirmée en fin de passe.
-- Local : `npm run test` 60 passed / 41 skipped / 0 failed ; `tsc --noEmit` 0
-  erreur ; `eslint` propre ; les 4 rapports économiques régénérés de façon
-  reproductible (graines fixes).
-
-## Limites connues
-
-- Tests DB (métier/concurrence) **non exécutés sur ce poste** (pas de Docker) —
-  premier run en CI locale, comme le smoke engine de A à ses débuts.
-- 72 personnages de fixture restent physiquement sur le cloud, neutralisés
-  (`themes = []`, hors pool) — 0006 ne grante pas DELETE sur `characters` au
-  service_role (lié à E-08). Purge physique à trancher par Agent 0.
-- La sim économie modélise 10 ouvertures/j ; le rythme réel dépend des joueurs
-  humains (recharge exploitable ~250/j, non plafonnée).
+- **B** : rien de bloquant côté 0008. Rappel E-09 (CSP prod) et E-10
+  (.env.example Discord) toujours ouverts, hors ce hotfix.
+- **A** : smoke premium déjà couvert ; la CI porte désormais tout le poids
+  des 41 tests DB — premier run à surveiller (les tests n'ont jamais tourné
+  sous Docker ; tout écart signalé = bug réel à corriger, pas à affaiblir).
+- **Orchestrateur** : E-06 (mix), puits économique = décisions produit
+  toujours à trancher.

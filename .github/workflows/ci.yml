@@ -1,7 +1,7 @@
 name: CI
 
 # Pipeline de vérification MANGA SOCIETY — rouge = pas de merge.
-# Ordre : lint → typecheck → migrations Supabase (db reset) → build.
+# Ordre : lint → typecheck → migrations Supabase (db reset) + npm run test → build.
 
 on:
   push:
@@ -81,13 +81,16 @@ jobs:
           version: latest
       - name: Démarrer la stack Supabase locale (Postgres 15)
         run: supabase start
-      - name: Appliquer les migrations (0000 → 0007)
+      - name: Appliquer les migrations (0000 → 0008)
         run: supabase db reset
-      - name: Clé service role du Supabase local
+      - name: Clés service role + anon du Supabase local
         # Les smoke tests s'authentifient contre le Supabase LOCAL du runner
-        # (SPEC §8 : jamais le cloud). La clé du bloc env est un placeholder.
+        # (SPEC §8 : jamais le cloud). Les clés du bloc env sont des
+        # placeholders ; les vraies clés de la stack locale sont injectées ici
+        # — l'anon est requis par les sign-ins de l'audit RLS (tests/rls-audit).
         run: |
           echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SUPABASE_SERVICE_ROLE_KEY=' | cut -d '=' -f2-)" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status -o env | grep '^SUPABASE_ANON_KEY=' | cut -d '=' -f2-)" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version: 22
