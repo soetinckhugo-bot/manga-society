@@ -490,6 +490,79 @@ describe.skipIf(!IS_CONFIGURED)('business — streak / wishlist / points / quêt
       .single();
     expect(cardAfter?.frame_id).toBeNull();
   });
+
+  // --- Booster MIX (0009) -----------------------------------------------------
+  // Décision produit V1 (E-06 tranché) : 'mix' = pool complet SANS filtre
+  // thème — seul moyen de tirer les persos untagged (themes = [], 1 647 en
+  // prod). Un perso untagged est invisible des 6 thèmes taggés et présent
+  // dans 'mix'. INVALID_THEME inchangé pour tout slug inconnu.
+  it('booster mix : untagged présent dans le pool complet, absent des thèmes taggés', async () => {
+    const [user] = await createUsers(admin, 1);
+    userIds.push(user); // cleanup() afterAll supprimera aussi cet user.
+    await refillStock(admin, user);
+
+    // Perso UNTAGGED dédié — le cas métier que 'mix' existe pour couvrir.
+    // anilist_id + 990 : hors de la plage du seed (max +551) et du perso
+    // solo de concurrency (+999), dans la plage cleanup du worker.
+    await fx(
+      admin.from('characters').insert({
+        anilist_id: ANILIST_BASE + 990,
+        name_romaji: 'QA Untagged Mix',
+        anime_title: 'QA Mix',
+        favourites: 1,
+        base_rarity: 'rare',
+        themes: [],
+        image_url: 'https://placehold.co/300x420/111827/94a3b8?text=Mix',
+        image_url_fallback: null,
+      }),
+    );
+
+    // 1) pool-info 'mix' : RPC 0009, total = TOUS les persos (untagged
+    //    inclus) — vérifié par requête indépendante, pas par l'implémentation.
+    const mix = await admin.rpc('get_theme_pool_info', { p_user: user, p_slug: 'mix' });
+    expect(mix.error).toBeNull();
+    const mixInfo = mix.data as unknown as { total_characters: number };
+    const { count: allCount } = await admin
+      .from('characters')
+      .select('id', { count: 'exact', head: true });
+    expect(mixInfo.total_characters).toBe(allCount);
+
+    // Le pool 'mix' est strictement plus large qu'un thème taggé dès qu'un
+    // untagged existe (notre fixture au minimum).
+    const shonen = await admin.rpc('get_theme_pool_info', { p_user: user, p_slug: 'shonen' });
+    expect(shonen.error).toBeNull();
+    expect(mixInfo.total_characters).toBeGreaterThan(
+      (shonen.data as unknown as { total_characters: number }).total_characters,
+    );
+
+    // 2) Ouverture mix : open_booster accepte le slug (pas INVALID_THEME) et
+    //    puise dans le pool complet. Poids forcé rare : les 5 cartes sont
+    //    des rares du pool COMPLET (le perso untagged en fait partie).
+    const opened = await admin.rpc('open_booster', {
+      p_user: user,
+      p_theme_slug: 'mix',
+      p_idempotency_key: freshKey(),
+      p_weights: { rare: 100 },
+    });
+    expect(opened.error).toBeNull();
+    const mixOpen = opened.data as unknown as OpenResult & { theme_slug: string };
+    expect(mixOpen.theme_slug).toBe('mix');
+    expect(mixOpen.cards).toHaveLength(5);
+    const { data: rareRows } = await admin.from('characters').select('id').eq('base_rarity', 'rare');
+    const rarePool = new Set((rareRows ?? []).map((r) => r.id));
+    for (const c of mixOpen.cards) {
+      expect(c.rarity).toBe('rare');
+      expect(rarePool.has(c.character_id)).toBe(true);
+    }
+
+    // 3) INVALID_THEME inchangé pour un slug inconnu.
+    const bogus = await admin.rpc('open_booster', {
+      p_user: user,
+      p_theme_slug: 'mix-nope',
+      p_idempotency_key: freshKey(),
+    });
+    expect(pgError(bogus.error)).toContain('INVALID_THEME');
+  });
 });
 
 // Marqueur de run pour traçabilité des audits cloud.

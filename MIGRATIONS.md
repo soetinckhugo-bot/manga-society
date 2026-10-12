@@ -215,3 +215,33 @@ tourné sous Docker) : concurrence 4/4 ×2, rls-audit 17/17 (attaque d'E
 rejouée — 16 RPC cross-user `FORBIDDEN`, état de B inchangé),
 economy.business 14/14, rng.property + config-drift 33/33. Détail et
 justifications des corrections de tests dans `QA_REPORT.md` (addendum Agent 0).
+
+## 0009_booster_mix.sql — Booster MIX : thème virtuel « pool complet » (Agent 0)
+
+**Motif (décision produit V1 verrouillée par l'orchestrateur, E-06)** : les
+persos untagged (`themes = {}`, **1 647 en prod**) sont intirables par les 6
+thèmes taggés. Le thème `mix` ouvre le booster sur la totalité du pool, sans
+filtre thème — seul moyen de les obtenir.
+
+**Contenu (additif, aucune valeur d'équilibrage touchée)** :
+
+1. upsert `themes` : `('mix', 'Tous les persos', 'All characters',
+   max(sort_order)+1)` — dernier de la rotation journalière.
+2. `_pick_character` : prédicat `(slug = 'mix' or slug = any(themes))`.
+   Central volontairement : `open_booster`, `open_premium_booster` et
+   `claim_daily_pack` en héritent. `INVALID_THEME` inchangé (tout slug
+   inconnu — dont les 6 thèmes mal orthographiés — toujours refusé ; 'mix'
+   est désormais un slug connu). Effet de bord assumé : le daily pack de
+   rotation tombe sur le pool complet 1 jour sur 7.
+3. `get_theme_pool_info` : même prédicat sur total / by_rarity /
+   wishlist_matches — `/api/themes/mix/pool-info` reflète le pool réel.
+
+**Application** : `supabase db push` — cloud **0000→0009 aligné** des deux
+côtés (`migration list`).
+
+**Vérifié live sur le cloud** : `get_theme_pool_info('mix')` →
+`total_characters = 5 000` = 3 353 taggés + **1 647 untagged** (recomptés par
+requête REST indépendante) ; slug inconnu → `THEME_NOT_FOUND`. Test
+économique `economy.business.test.ts` (« booster mix : untagged présent dans
+le pool complet ») : pool-info exact vs requête directe, ouverture `mix` à
+poids forcé, `INVALID_THEME` sur slug inconnu — juge complet = CI.
