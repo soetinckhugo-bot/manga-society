@@ -48,6 +48,8 @@ export interface UpsertOutcome {
  * Upsert idempotent d'un lot de personnages. Découpe new / existing /
  * overridden avant d'écrire pour ne jamais écraser une rareté overridée.
  * `anilist_id` unique en base : rejouer ce lot = 0 doublon, mise à jour en place.
+ * Les existants sont lus par plages de 1 000 (limite max-rows PostgREST) —
+ * un `.in()` avec des milliers d'ids dépasse la longueur d'URL admise.
  */
 export async function upsertCharacters(
   db: SupabaseClient,
@@ -57,16 +59,18 @@ export async function upsertCharacters(
   const outcome: UpsertOutcome = { inserted: 0, updated: 0, skippedOverridden: 0 };
   if (rows.length === 0) return outcome;
 
-  const ids = rows.map((r) => r.anilist_id);
-  const { data: existing, error: readError } = await db
-    .from('characters')
-    .select('anilist_id, rarity_overridden')
-    .in('anilist_id', ids);
-  if (readError) throw new Error(`lecture characters existants: ${readError.message}`);
-
-  const existingMap = new Map<number, boolean>(
-    (existing ?? []).map((e: { anilist_id: number; rarity_overridden: boolean }) => [e.anilist_id, e.rarity_overridden]),
-  );
+  const PAGE = 1_000;
+  const existingMap = new Map<number, boolean>();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from('characters')
+      .select('anilist_id, rarity_overridden')
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`lecture characters existants (offset ${from}): ${error.message}`);
+    const batch = (data ?? []) as Array<{ anilist_id: number; rarity_overridden: boolean }>;
+    for (const e of batch) existingMap.set(e.anilist_id, e.rarity_overridden);
+    if (batch.length < PAGE) break;
+  }
 
   const toInsert: CharacterRow[] = [];
   const toUpdate: CharacterRow[] = [];
@@ -105,14 +109,20 @@ export async function upsertCharacters(
  * relancer = les raretés inchangées ne sont pas réécrites.
  */
 export async function recalculateRarities(db: SupabaseClient): Promise<number> {
-  const { data, error } = await db
-    .from('characters')
-    .select('id, anilist_id, favourites, base_rarity, rarity_overridden')
-    .eq('rarity_overridden', false);
-  if (error) throw new Error(`lecture pool pour raretés: ${error.message}`);
-
   type PoolRow = { id: string; anilist_id: number; favourites: number; base_rarity: string; rarity_overridden: boolean };
-  const pool = (data ?? []) as PoolRow[];
+  const pool: PoolRow[] = [];
+  const PAGE = 1_000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from('characters')
+      .select('id, anilist_id, favourites, base_rarity, rarity_overridden')
+      .eq('rarity_overridden', false)
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`lecture pool pour raretés (offset ${from}): ${error.message}`);
+    const batch = (data ?? []) as PoolRow[];
+    pool.push(...batch);
+    if (batch.length < PAGE) break;
+  }
   if (pool.length === 0) return 0;
 
   const { assignRarities } = await import('./classify');

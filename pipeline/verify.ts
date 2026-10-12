@@ -35,11 +35,18 @@ interface CharacterRecord {
 
 async function main(): Promise<void> {
   const db = createDbClient();
-  const { data, error } = await db.from('characters').select(
-    'id, anilist_id, name_romaji, favourites, base_rarity, rarity_overridden, themes, image_url',
-  );
-  if (error) throw new Error(`lecture characters: ${error.message}`);
-  const pool = (data ?? []) as CharacterRecord[];
+  const pool: CharacterRecord[] = [];
+  const PAGE = 1_000; // limite max-rows PostgREST : pagination obligatoire
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from('characters')
+      .select('id, anilist_id, name_romaji, favourites, base_rarity, rarity_overridden, themes, image_url')
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`lecture characters (offset ${from}): ${error.message}`);
+    const batch = (data ?? []) as CharacterRecord[];
+    pool.push(...batch);
+    if (batch.length < PAGE) break;
+  }
   if (pool.length === 0) throw new Error('pool vide — lancer d\'abord pipeline/ingest.ts');
 
   const failures: string[] = [];
@@ -62,10 +69,16 @@ async function main(): Promise<void> {
     failures.push(`${missingImages.length} perso(s) sans image_url : ${missingImages.slice(0, 10).map((c) => c.name_romaji).join(', ')}`);
   }
 
-  // 3. Thèmes
+  // 3. Thèmes : les untagged sont un ÉTAT NOMINAL en V1 (décision orchestrateur :
+  //    exclus = 0, ils servent le booster MIX "Tous les persos") → info, pas échec.
   const unthemed = pool.filter((c) => !c.themes || c.themes.length === 0);
+  out.push(`## Untagged (info — état nominal V1, booster MIX)`);
+  out.push('');
+  out.push(`**${unthemed.length}** personnage(s) sans thème (conforme à la décision V1).`);
+  out.push('');
   if (unthemed.length > 0) {
-    failures.push(`${unthemed.length} perso(s) sans thème : ${unthemed.slice(0, 10).map((c) => c.name_romaji).join(', ')}`);
+    out.push(`Exemples : ${unthemed.slice(0, 10).map((c) => c.name_romaji).join(', ')}`);
+    out.push('');
   }
 
   // 4. Distribution des raretés vs percentiles théoriques (sur les non overridés)

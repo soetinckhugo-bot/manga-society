@@ -38,12 +38,15 @@ Env (`.env` / `.env.local` ou shell) : `SUPABASE_URL` (ou
    jitter ; circuit breaker (3 échecs → pause 60 s → checkpoint propre +
    exit code 1).
 
-## Filtrage qualité (tout exclu est logué dans le rapport)
+## Filtrage qualité (journalisé, exclusions minimales)
 
-- media `isAdult` → exclus (un node adulte parmi des nodes sains est ignoré) ;
-- sans image AniList ET sans fallback Jikan → exclu (`no_image`) ;
-- nom vide → exclu (`no_name`) ;
-- aucun thème applicable → exclu (`no_theme`).
+- media `isAdult` → ignorés pour la classification ; un perso dont TOUS les media
+  sont adultes n'est **plus exclu** → importé untagged (`themes = '{}'`) ;
+- sans image AniList ET sans fallback Jikan → exclu (`no_image`, structurel NOT NULL) ;
+- nom vide → exclu (`no_name`, structurel NOT NULL) ;
+- aucun thème applicable (`no_theme`) → **importé untagged** (décision V1
+  orchestrateur : exclus = 0 ; les untagged servent le booster MIX "Tous les
+  persos" et sont comptés + top 20 dans `report.md`).
 
 ## Classification (`classify.ts`, pure et testée)
 

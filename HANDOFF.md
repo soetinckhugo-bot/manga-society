@@ -155,7 +155,11 @@ commit trivial.
    `SHONEN_TITLE_PATTERNS` complémentaire (titres WSJ sans genre Action/Adventure : Death
    Note, Haikyuu…) — matching titre.romaji, "ce qui passe passe". Réintègrent les exclus
    du 1er dry-run (Chika←Kaguya-sama seinen, Kurisu←Steins;Gate seinen, L←Death Note,
-   Violet←shojo). Les untagged restants restent exclus et sont listés dans le rapport.
+   Violet←shojo).
+4bis. **Exclus = 0** (directive orchestrateur) : `no_theme` et `adult_media` ne sont plus
+   des exclusions — les untagged entrent en base avec `themes = '{}'` pour le booster MIX.
+   Seules les exclusions structurelles restent (no_image / no_name, NOT NULL). Rapport :
+   section "Untagged" (compte + top 20).
 5. **Bug API AniList contourné** : nester `media` dans `Media.characters.nodes` renvoie
    HTTP 500 (bug serveur vérifié par requêtes curl) — `--anime` récupère d'abord les IDs
    puis enrichit via `Character(id:)` (1 requête/perso supplémentaire).
@@ -169,12 +173,41 @@ commit trivial.
   après le 1er run live.
 - **Fallback image Jikan** idem (peu critique : ~100 % des persos AniList ont une image).
 
+## ⚠️ Alerte cross-agents (constaté au seed)
+
+- **Cloud : `POST /rpc/open_booster` → 404** (projet `pshtqnd…`). Les fonctions
+  0001/0003 ne semblent pas déployées sur le cloud malgré HANDOFF §5 (« RPC
+  présentes ») — les routes Agent A et le dev-seed seront cassés. À vérifier
+  par Agent 0 / A (`supabase migration list` côté cloud OK pour 0000–0005,
+  mais les fonctions manquent → re-push nécessaire ?).
+- **Migration `0006_service_role_grants.sql`** (Agent C, bloquant seed) : voir
+  `MIGRATIONS.md`. `0004` était déjà pris par l'Agent A — vérifier la
+  numérotation avant toute nouvelle migration.
+
 ## Reste à faire (côté C)
 
-1. **Seed live ≥ 3000 persos** : `npx tsx pipeline/ingest.ts` puis `--resume` jusqu'à
-   couverture, EN ATTENDANT LE GO orchestrateur (dry-run montré, pas encore seedé).
-2. `npx tsx pipeline/verify.ts` après seed (seuil ≥300/thème, distribution ±2 pts).
-3. Vérifier les rescues Jikan dans `report.md` (réseau dépendant).
+1. ~~Seed live ≥ 3000 persos~~ ✅ **FAIT** : 5 000/5 000 insérés (parcours global
+   complet, plafond AniList 5 000 entrées = fin naturelle), 0 exclus, raretés
+   recalculées sur le pool complet. Distribution finale exacte : 50 M / 250 L /
+   1000 E / 1250 R / 1500 U / 1250 C.
+2. ✅ `verify.ts` exécuté : raretés/images/doublons **conformes** ; 5 échecs
+   connus V1 = seuils ≥300/thème non atteignables sur la source unique
+   (big3 180, isekai 142, seinen 203, shojo 133, webtoon 144 vs shonen 3 149).
+   Levier documenté si besoin plus tard : passe d'enrichissement `--anime`
+   ciblée sur les listes curatées (Jikan down ici a limité les rescues).
+3. Vérifier les rescues Jikan (réseau dépendant — 0 rescue lors du seed).
+
+## État du seed (final)
+
+| Thème | Nb | | Rareté | Nb |
+|---|---:|---|---|---:|
+| shonen | 3 149 | | mythic | 50 |
+| big3 | 180 | | legendary | 250 |
+| isekai | 142 | | epic | 1 000 |
+| seinen | 203 | | rare | 1 250 |
+| shojo | 133 | | uncommon | 1 500 |
+| webtoon | 144 | | common | 1 250 |
+| **untagged** | **1 647** | | **total** | **5 000** |
 4. Renfort manuel webtoons curatés si besoin : `--anime="Solo Leveling"`, etc.
 
 ## À câbler à l'intégration
@@ -245,3 +278,159 @@ puis lancer A + B + C en parallèle selon `SPEC.md` §10.*
 2. `is_new_character` : garde de dérive d'horloge 3 s (Vercel/Supabase NTP-synced) ; un doublon du même perso dans LA MÊME ouverture est correctement marqué (la borne est capturée avant la RPC).
 3. Recharge de stock : la logique ne vit que dans `open_booster` (RPC 0001). `GET /api/boosters/state` renvoie `next_recharge_at` tel quel (aucune recharge simulée en lecture — la RPC d'ouverture crédite le dû, conformément au schéma qui conditionne le stock à `last_booster_recharge`).
 4. `handleApi` logge les 4xx métier en `info`/`warn` (error_code brut RPC en warn) et les 5xx en `error` — aucune donnée sensible.
+
+---
+
+# HANDOFF — Agent B (PROMPT B, pages /collection /shop /u/[username])
+
+## Livré (périmètre B : pages game + composants)
+
+| Fichier | Contenu |
+|---|---|
+| `app/[locale]/(game)/collection/page.tsx` | Shell serveur : `setRequestLocale`, thèmes publics via `lib/supabase/server.ts`, metadata. |
+| `components/collection/collection-page.tsx` | Onglets Grille/Album (Tabs ui). Grille : `useInfiniteQuery` sur `getCollection` (queryKey = filtres), debounce recherche 300 ms, sentinelle IntersectionObserver + bouton "Charger plus", skeletons, empty states traduits. Cellules : `content-visibility: auto` + `contain-intrinsic-size` (virtualisation pragmatique zero-dep, commentée). |
+| `components/collection/collection-filters.tsx` | Select thème, 6 pills rareté (codes `RARITY_CODE`, tokens `--rarity-*`, sélection unique), recherche, tri (recent/rarity/print_number/name — exécuté côté SQL). |
+| `components/collection/card-sheet.tsx` | Fiche carte (Dialog) : `GameCard variant="detail"`, source, date d'obtention (`Intl.DateTimeFormat` selon locale), `owners_count` via `getCard(id)`, wishlist (toggle + slots used/max), cosmétiques par slot (apply depuis `user_cosmetics`→`cosmetics` en lecture Supabase browser, reroll), burn en confirmation 2 étapes avec preview indicative `burnValueFor` ("valeur indicative" affichée). Idempotence : `crypto.randomUUID()` généré dans chaque handler. Pas d'optimistic : pending → serveur → `invalidateQueries` → toast. |
+| `components/collection/album-view.tsx` + `album-group.tsx` | Album : `getAlbum()`, barres de complétion par anime, possédés en `GameCard` mini (carte de présentation synthétique — l'album n'expose pas d'id de carte, seulement `best_print_number`), manquants en silhouette numérotée (index). |
+| `app/[locale]/(game)/shop/page.tsx` | Shell serveur + metadata. |
+| `components/shop/shop-page.tsx` | Catalogue en lecture publique `cosmetics` (Supabase browser, mappé en `CosmeticDto`), onglets Frames/Holos/Dyes, marqueur "Possédé" (`user_cosmetics`), achat `buyCosmetic` (idempotence par clic, toast + invalidation `my-cosmetics`/`booster-state`), erreur `INSUFFICIENT_CHAKRA` traduite via namespace `errors`. |
+| `components/shop/cosmetic-tile.tsx` | Tuile cosmétique (prix chakra, badge ultra rare, actions) + vignette de carte. |
+| `app/[locale]/(game)/u/[username]/page.tsx` | Shell serveur + metadata. |
+| `components/profile/*` | Profil public : fetch typé `GET /api/u/[username]` → `PublicProfileDto` (endpoint provisoire, parsing `{ error: AppErrorCode }` identique à `lib/query/api`), 404 → empty state "profil introuvable", stats (cartes, persos uniques, % complétion, meilleur print en `GameCard` mini, meilleure rareté, streak Jx), vitrine ≤ 5 `GameCard variant="showcase"`, wishlist en tuiles sobres `next/image`. |
+| `components/collection/section-boundary.tsx` | Error boundary réutilisable (fallback `common.error`/`retry`, retry = remount de la sous-arbre → refetch React Query). Utilisé sur chaque section (grille, album, catalogue, stats, vitrine, wishlist). |
+| `components/cosmetic-dto.ts` | Mapping défensif ligne `cosmetics` → `CosmeticDto` (réaffûtage `string`/`Json`, zéro `as` dans les composants). |
+| `components/date-format.ts` | Hook `useFormatDateTime` (locale next-intl). |
+| `messages/{fr,en}/{collection,shop,profile}.json` | Namespaces auto-fusionnés par `lib/i18n/request.ts`, parité stricte vérifiée par script. Zéro literal UI. |
+
+## Écarts constatés avec `types/api.ts` / validations (à traiter côté A/0)
+
+1. **`WishlistToggleInput` ne prend PAS d'`idempotency_key`** (`lib/validations/wishlist.ts` : toggle naturellement idempotent, contrairement à l'instruction initiale B). Le frontend appelle `toggleWishlist({ character_id })` conformément au contrat.
+2. **`GET /api/u/[username]` provisoire** : absent de `lib/query/api.ts` (contrat) — codé en fetch direct typé `PublicProfileDto` dans `components/profile/use-public-profile.ts`, parsing d'erreur identique (`ApiError`). À migrer dans `lib/query/api.ts` quand A livre la route.
+3. **`collectionQuerySchema` inline côté A** (déjà signalé par A) : B duplique le type `CollectionQueryParams` côté client via `types/api.ts` — cohérent, pas de drift constaté.
+
+## Décisions B
+
+1. **Burn : confirmation en 2 états dans la fiche** (qui est déjà un Dialog) plutôt qu'un Dialog imbriqué — mêmes garanties, moins de risques de focus trap.
+2. **Cartes de présentation synthétiques** (album, meilleur print) : `CardDto` fabriqués en mémoire (id préfixé `album-`/`best-print-`, jamais passés à une mutation) pour réutiliser `GameCard` — le contrat n'expose pas de vraie carte dans ces contextes.
+3. **Preview indicative burn** : `burnValueFor(rarity, wishlist_count)` affiché avec mention "valeur indicative" ; le montant affiché au toast vient de `chakra_gained` serveur.
+4. **Grille > 500 cartes** : pas de lib de virtualisation ; `content-visibility` + `contain-intrinsic-size` sur les cellules (note en commentaire dans `collection-page.tsx`).
+
+## Vérifications effectuées
+
+- `npx next typegen` : routes `/[locale]/collection`, `/[locale]/shop`, `/[locale]/u/[username]` générées dans `.next/types/routes.d.ts`.
+- `npx tsc --noEmit` : **zéro erreur sur tout le repo** (le souci JSDoc `components/legal/legal-page.tsx` signalé par A est déjà résolu dans le fichier actuel).
+- `npx eslint` sur tout le périmètre B : 0 erreur, 0 warning.
+- Parité des clés fr/en des 3 namespaces vérifiée par script.
+- **Non vérifié** : rendu HTTP bout-en-bout (les routes A `get_collection_page`/`get_album`/… dépendent de la migration 0003 non appliquée sur le cloud ; `next dev` tourne peut-être chez d'autres agents). Premier smoke manuel dev : ouvrir `/fr/collection`, `/fr/shop`, `/fr/u/<username>` avec un user seedé.
+
+---
+
+# HANDOFF — Agent B (UI Core) — SYNTHÈSE FINALE (PROMPT B complet)
+
+> Cette section complète et prend le pas sur la section partielle « Agent B
+> (pages /collection /shop /u/[username]) » ci-dessus (même livrable, vue
+> complète : fondations + auth + PWA + landing + /boosters + placeholders D).
+
+## Livré
+
+**i18n** : `lib/i18n/{routing,request,navigation}.ts` (locales fr/en,
+localePrefix 'always', `timeZone: 'Europe/Paris'` dans request.ts ET passé au
+`NextIntlClientProvider` — requis sinon IntlError ENVIRONMENT_FALLBACK au
+prerender). Mécanisme de namespaces : `messages/{locale}.json` + tous les
+`messages/{locale}/*.json` auto-fusionnés (clé = nom de fichier) — les agents
+suivants déposent leur JSON sans rien modifier d'autre. `next-intl/plugin`
+(createNextIntlPlugin dans next.config.ts).
+
+**Pages** : `/` (landing : héro glassmorphism mesuré, 3 étapes double
+rareté + print, CTA login), `/login` (magic link + Discord OAuth — login
+UNIQUEMENT), `/onboarding` (username temps réel), `/boosters` (grille 6
+thèmes, panneau pool + "X de tes envies", ouverture/premium avec
+idempotence par clic, state-bar polling 30 s + décompte smooth cosmétique,
+widgets pity/doré/daily/quêtes/streak), `/collection` (Grille/Album,
+filtres, fiche carte, burn, cosmétiques, wishlist), `/shop` (Frames/Holos/
+Dyes + aperçu live), `/u/[username]` (profil public), `/offline`,
+3 pages légales. Toutes sous `app/[locale]/…`, liens via
+`@/lib/i18n/navigation`.
+
+**Auth/session** : `lib/supabase/{client,server,middleware}.ts` +
+`app/auth/callback/route.ts` (échange code, hook streak best-effort,
+redirection onboarding ou /). `proxy.ts` (racine) = ex-middleware Next 16 :
+refresh session Supabase + garde /boosters|/collection|/shop|/onboarding +
+routing next-intl.
+
+**PWA** : `@serwist/turbopack` (route handler `app/serwist/[path]/route.ts`
+→ SW servi à `/serwist/sw.js`, vérifié HTTP 200 avec precache manifest ;
+`@serwist/next` webpack retiré — inactif sous le build Turbopack de Next 16).
+SW : precache shell, AniList/MAL StaleWhileRevalidate maxEntries 200,
+fallback navigation → /fr/offline, skipWaiting + clientsClaim. Registration
+prod-only (`lib/pwa/register.ts`). Bannière d'install (beforeinstallprompt,
+dismiss localStorage 7 j, CTA iOS dédié), `lib/hooks/use-pwa.ts`,
+`public/manifest.webmanifest` conservé.
+
+**Placeholders Agent D (contrat exact à remplacer)** :
+`components/game-card/{game-card,card-back,index}.ts(x)` (ratio TCG, cadre
+rareté, badge print via `printVisualTier`, first owner, overlays
+`css_config`, fallback image → silhouette+initiale ; variants grid/detail/
+showcase) et `components/booster-opening/booster-opening.tsx`
+(`{cards, isGolden, onComplete}`, overlay clavier Échap/Entrée, aucun fetch).
+Tous marqués « PLACEHOLDER AGENT B » en en-tête. D refactorise tout rendu
+carte vers `game-card/` et remplace ces deux dossiers.
+
+**Conventions Next 16 `cacheComponents` (obligatoires pour tout agent
+front)** :
+- Aucun `Date.now()`/`new Date()` pendant le render (prerender bloqué) :
+  utiliser `lib/hooks/use-now.ts` (`useNowSeconds`, useSyncExternalStore,
+  snapshot serveur 0) — `use-booster-timer` et les countdowns l'utilisent.
+- Aucun setState synchrone dans un effet (règle eslint
+  react-hooks/set-state-in-effect) : dériver pendant le render.
+- Données publiques serveur : `createPublicClient()` (SANS cookies) +
+  fonction `'use cache'` (fetch Supabase non caché = prerender bloqué).
+- Route dynamique avec params : shell synchrone + enfant async sous
+  `<Suspense>` (cf. `app/[locale]/(game)/u/[username]/page.tsx`).
+- `dynamicParams` est incompatible avec cacheComponents (retiré).
+
+## Vérifications (périmètre B)
+
+- `npx tsc --noEmit` : 0 erreur (repo entier).
+- `npx eslint` : 0 erreur B. (Restent 2 erreurs `prefer-const` dans
+  `pipeline/ingest.ts` — territoire Agent C.)
+- `npx next build` : vert — 50/50 pages prerendues (shells statiques par
+  locale, /u/[username] en partial prerender), proxy compilé.
+- Parité fr/en vérifiée par script : 240 clés des deux côtés.
+- Smoke HTTP sur `next start` : `/fr` 200, `/fr/offline` 200,
+  `/serwist/sw.js` 200 (38 KB, precache manifest présent).
+
+## Écarts / demandes aux autres agents
+
+**Pour l'Agent A (endpoints manquants du contrat, codés côté B contre ces
+signatures provisoires)** :
+1. `GET /api/profiles/check-username?username=…` → `{ available: boolean }`
+   (onboarding, vérification temps réel).
+2. `POST /api/profiles/username` `{ username }` → 200 ou
+   `{ error: 'USERNAME_TAKEN' | 'INVALID_USERNAME' }`.
+3. `GET /api/u/[username]` → `PublicProfileDto` (profil public ; absent de
+   `lib/query/api.ts`, fetch direct typé dans
+   `components/profile/use-public-profile.ts` — à migrer dans le client API
+   quand la route existe).
+4. `ClaimDailyPackResponse` n'a pas de champ `is_golden` (contrairement à
+   open/open-premium) — guard défensif `false` côté B ; ajouter le champ au
+   type si la RPC le prévoit.
+
+**Pour l'Agent A (alignement)** : `lib/supabase/` est une couche B
+provisoire (client serveur + middleware updateSession). A peut l'aligner
+avec `lib/server/` ou la consommer — décision à prendre, ne pas dupliquer.
+
+**Pour l'Agent D** : remplacer les deux placeholders (game-card,
+booster-opening) — contrats de props exacts ci-dessus. Tout rendu carte
+actuel passe déjà par `GameCard`. Les sons/particules/60fps de la séquence
+sont à implémenter dans `booster-opening/`.
+
+**Pour l'Agent E (audit)** : CSP en dev inclut `'unsafe-eval'` (HMR
+turbopack) — headers appliqués aussi en dev par simplicité ; à auditer.
+`.env.example` : `DISCORD_REDIRECT_URI=…/api/auth/callback/discord` ≠
+callback frontend `/auth/callback` (Supabase gère l'OAuth — à clarifier).
+Budget first-load JS < 200 KB gzip non mesuré (à la charge d'E).
+
+**Pour l'architecte (SPEC à mettre à jour)** : §2.1 dit `middleware.ts` →
+c'est `proxy.ts` en Next 16 ; le fallback offline est `/fr/offline` (toutes
+les pages sont sous préfixe de locale).

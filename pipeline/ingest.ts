@@ -14,7 +14,7 @@
  * ============================================================================
  */
 
-import { AniListClient } from './anilist';
+import { AniListClient, AniListError } from './anilist';
 import { ALPHABET, FRESH_CHECKPOINT, loadCheckpoint, saveCheckpoint, type Checkpoint } from './checkpoint';
 import { assignRarities, classifyCharacter } from './classify';
 import { createDbClient, recalculateRarities, upsertCharacters } from './db';
@@ -159,7 +159,12 @@ async function main(): Promise<void> {
       }
     }
 
-    if (finalExcluded !== null) {
+    // Exclusions "douces" (décision orchestrateur V1) : les untagged — y compris
+    // les media 100 % adultes — ENTRENT en base avec themes '{}' (ils serviront
+    // au booster MIX "Tous les persos"). Seules les exclusions structurelles
+    // (NOT NULL : nom / image) restent dures.
+    const SOFT_EXCLUSIONS: string[] = ['no_theme', 'adult_media'];
+    if (finalExcluded !== null && !SOFT_EXCLUSIONS.includes(finalExcluded)) {
       report.add({
         anilistId: raw.anilistId,
         name: raw.nameRomaji,
@@ -177,7 +182,7 @@ async function main(): Promise<void> {
       imageUrlResolved: resolved,
       imageFallback: raw.imageUrl !== null ? fallback : null,
       animeTitle,
-      themes: finalThemes,
+      themes: finalExcluded !== null ? [] : finalThemes, // untagged → '{}'
       rarity: 'common', // affectée par assignRarities sur le pool, plus bas
     });
   }
@@ -208,6 +213,13 @@ async function main(): Promise<void> {
       try {
         result = await anilist.fetchCharactersPage(cursorLetter, page);
       } catch (err) {
+        // Plafond dur d'AniList : 100 pages × 50 = 5 000 entrées max sur le
+        // parcours global. Ce n'est PAS une erreur : c'est la fin du parcours.
+        if (err instanceof AniListError && err.status === 400 && err.message.includes('Page depth exceeds')) {
+          console.log('[ingest] fin du parcours global (plafond AniList de 5 000 entrées atteint).');
+          saveCheckpoint(CHECKPOINT_PATH, cp);
+          break;
+        }
         // Circuit breaker / échec persistant : checkpoint propre + exit code explicite.
         saveCheckpoint(CHECKPOINT_PATH, cp);
         throw new Error(

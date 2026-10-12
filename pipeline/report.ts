@@ -123,6 +123,25 @@ export class Report {
     }
     out.push('');
 
+    out.push('## Untagged (thèmes vides — booster MIX "Tous les persos")');
+    out.push('');
+    const untagged = accepted.filter((l) => l.themes.length === 0);
+    out.push(`**${untagged.length}** personnage(s) sans thème — importés en base avec \`themes = '{{}}'\`.`);
+    out.push('');
+    if (untagged.length > 0) {
+      out.push('Top 20 untagged par favourites :');
+      out.push('');
+      out.push('| # | Perso | Fav | Statut |');
+      out.push('|---:|---|---:|---|');
+      untagged
+        .sort((a, b) => b.favourites - a.favourites)
+        .slice(0, 20)
+        .forEach((l, i) => {
+          out.push(`| ${i + 1} | ${l.name} (#${l.anilistId}) | ${l.favourites} | ${l.status} |`);
+        });
+      out.push('');
+    }
+
     const mythics = accepted
       .filter((l) => l.rarity === 'mythic')
       .sort((a, b) => b.favourites - a.favourites)
