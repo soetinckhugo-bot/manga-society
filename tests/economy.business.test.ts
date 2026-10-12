@@ -497,8 +497,9 @@ describe.skipIf(!IS_CONFIGURED)('business — streak / wishlist / points / quêt
   // prod). Un perso untagged est invisible des 6 thèmes taggés et présent
   // dans 'mix'. INVALID_THEME inchangé pour tout slug inconnu.
   it('booster mix : untagged présent dans le pool complet, absent des thèmes taggés', async () => {
-    const [user] = await createUsers(admin, 1);
-    userIds.push(user); // cleanup() afterAll supprimera aussi cet user.
+    // Réutilisation d'un user existant : createUsers(admin, 1) recréerait
+    // l'email qa-RUN_ID-0 (déjà pris par le beforeAll) → EMAIL_TAKEN.
+    const user = userIds[1]!;
     await refillStock(admin, user);
 
     // Perso UNTAGGED dédié — le cas métier que 'mix' existe pour couvrir.
