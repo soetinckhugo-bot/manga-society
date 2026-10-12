@@ -1,0 +1,43 @@
+{
+  "pack": {
+    "hint": "Glisse le doigt le long du haut pour déchirer",
+    "open": "Ouvrir",
+    "goldenTitle": "Booster doré !"
+  },
+  "reveal": {
+    "flip": "Retourner la carte",
+    "next": "Carte suivante",
+    "revealAll": "Tout révéler",
+    "hint": "Espace : carte suivante · maintenir : avance rapide · Échap : passer",
+    "progress": "Carte {current} sur {total}"
+  },
+  "recap": {
+    "bestCard": "Meilleure carte",
+    "golden": "Taux de rareté doublés sur cette ouverture !",
+    "openAnother": "Ouvrir un autre",
+    "changeBooster": "Changer de booster",
+    "seeCollection": "Voir la collection",
+    "copyLink": "Copier le lien",
+    "copied": "Lien copié !",
+    "copyError": "Impossible de copier le lien",
+    "image": "Image",
+    "imagePending": "Génération…",
+    "imageError": "Impossible de générer l'image"
+  },
+  "aria": {
+    "label": "Ouverture de booster",
+    "close": "Fermer"
+  },
+  "keyboard": {
+    "hint": "Espace : carte suivante (maintenir = avance rapide) · Échap : passer / fermer"
+  },
+  "themes": {
+    "shonen": "Booster Shonen",
+    "shojo": "Booster Shojo",
+    "webtoon": "Booster Webtoon",
+    "big3": "Booster Big 3",
+    "seinen": "Booster Seinen",
+    "isekai": "Booster Isekai",
+    "mix": "Booster Mix"
+  }
+}
