@@ -11,10 +11,10 @@ travail visuel : séquence d'ouverture, rendu carte, polish.
 |---|---|
 | `01-landing.png` | Landing page (héro, bannière, stats joueur) |
 | `02-boosters.png` | Page boosters (grille de packs + panneau détails) |
-| `03-opening-pack.png` | Séquence d'ouverture — écran pack *(manquant)* |
-| `04-opening-tear.png` | Séquence d'ouverture — déchirure *(manquant)* |
-| `05-opening-reveal.png` | Séquence d'ouverture — reveal carte *(manquant)* |
-| `06-opening-recap.png` | Séquence d'ouverture — récap *(manquant)* |
+| `03-opening-pack.png` | Séquence d'ouverture — écran pack (bouton « Ouvrir », garantie mythique) |
+| `04-opening-tear.png` | Séquence d'ouverture — déchirure du haut du pack (particules, liseré bleu) |
+| `05-opening-reveal.png` | Séquence d'ouverture — reveal (dos de cartes empilées, « Tout révéler ») |
+| `06-opening-recap.png` | Séquence d'ouverture — récap des 5 cartes tirées (meilleure carte mise en avant) |
 | `07-collection.png` | Collection / album (silhouettes, filtres rareté) |
 | `08-card-front.png` | Face carte (image perso, cadre, print) |
 | `09-card-back.png` | Verso carte (détails personnage) |
