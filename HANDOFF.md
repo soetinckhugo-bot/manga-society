@@ -478,18 +478,55 @@ les pages sont sous préfixe de locale).
 
 ## Demandes
 
-- **Agent B** : passer `packSlug`/`packName` au montage de
-  `<BoosterOpening>` dans `boosters-page.tsx` (thème sélectionné +
-  `DailyPackWidget` avec `response.theme.slug`). 1 ligne, pas urgent
-  (fallback propre). Le shimmer premium `.buttonShimmer` existe dans
-  `game-card.module.css` si B veut l'appliquer sur ses boutons premium.
+- **Agent B — câblage pack art (actionnable tel quel, périmètre B)** :
+  1. Fichier : `components/boosters/boosters-page.tsx` (seul endroit qui
+     monte `<BoosterOpening>`, lignes ~97-103) — D n'a PAS touché ce
+     fichier, à toi de l'éditer.
+  2. Élargir `OpeningState` pour porter le pack :
+     ```ts
+     interface OpeningState {
+       cards: OpenedCardDto[];
+       isGolden: boolean;
+       packSlug?: string;   // slug thème, ex. 'shonen' | 'mix'
+       packName?: string;   // nom déjà localisé (name_fr/name_en selon locale)
+     }
+     ```
+  3. Au montage : `<BoosterOpening cards isGolden onComplete
+     packSlug={opening.packSlug} packName={opening.packName} />`.
+  4. Renseigner les valeurs : `ThemePanel.onOpened` connaît le thème
+     sélectionné (`selectedTheme.slug` + nom localisé du `ThemeDto`) ;
+     pour `DailyPackWidget`, la réponse `ClaimDailyPackResponse.theme`
+     (`ThemeDto.slug` + nom) est disponible dans le handler — la passer
+     dans le callback `onOpened` (signature du callback à élargir chez B).
+  5. Contrat côté D (déjà livré, `components/booster-opening/booster-opening.tsx`) :
+     ```ts
+     packSlug?: string; // défaut 'mix' ; slugs acceptés: shonen|shojo|webtoon|big3|seinen|isekai|mix (inconnu → 'mix')
+     packName?: string; // défaut: 'Booster Mix' traduit (namespace opening.themes)
+     ```
+  6. Fallback actuel sans câblage : pack générique `mix` + nom traduit —
+     la séquence est déjà fonctionnelle, ce câblage n'est que du polish.
+  7. Bonus (pas demandé) : `.buttonShimmer` exporté dans
+     `game-card.module.css` si tu veux un shimmer sobre sur tes boutons
+     premium.
 - **Agent E** : Definition of Done perf **non mesurée ici** (pas de
-  DevTools dans cet environnement) — méthodologie suivie : animations
-  transform/opacity exclusivement (audité à la main, zéro
-  width/height/top/left animé, zéro layout keyframes), particules < 300,
-  will-change parcimonieux, DPR capé, sons < 200 Ko, preload 2 fichiers,
-  verso préchargé à l'écran pack. À mesurer : Performance panel, 4G
-  throttling + CPU 4×, frame drops < 5 % pendant la séquence.
+  DevTools dans cet environnement). Procédure exacte à exécuter telle
+  quelle (Chrome DevTools, onglet Performance) :
+  1. `npm run build && npm start`, ouvrir `/fr/boosters`, login seed,
+     DevTools → Performance : Network throttling **Fast 4G**, CPU
+     **4× slowdown**, `Disable cache` coché.
+  2. Scénario A (nominal) : déchirure complète par drag → laisser la
+     séquence jouer les 5 reveals sans intervention (~20-25 s).
+  3. Scénario B (skip) : Échap pendant le reveal → récap.
+  4. Scénario C (Mythique) : dev-seed un booster dont une carte est M
+     (ou forcer `cards[0]` mythic en dev) → reveal de cette carte.
+  5. Pour chaque scénario : enregistrer, relever **% de frames dropées**
+     (frames > 50 ms dans le thread principal) et jank longues tâches.
+     **DoD : frame drops < 5 %** sur les 3 scénarios. Comparer aussi avec
+     `prefers-reduced-motion: reduce` activé (doit être plat).
+  6. Points de vigilance si rouge : halo/rays (opacity/conic ok mais le
+     blur ?), canvas particules (doit rester < 300 nœuds et DPR ≤ 2 —
+     vérifier `devicePixelRatio` de la machine de test), `backdrop-blur`
+     de l'overlay (déjà suspect n°1 sur mobile réel).
 - **Agent 0 / orchestrateur** : `scripts/generate-assets.mjs` nouveau
   fichier (voir Livré). Sons WAV vs mp3 de la spec (voir Livré).
 
@@ -507,3 +544,97 @@ les pages sont sous préfixe de locale).
   sont dessinées en silhouette — le PNG est toujours généré.
 - Booster MIX : `open_booster` doit accepter `theme_slug='mix'` (déjà
   signalé par C) ; l'asset `mix.png` est prêt et le fallback l'utilise.
+
+
+---
+
+# HANDOFF — Agent E (QA & Économie)
+
+## Livré
+
+- **Property tests RNG** : `tests/rng.property.test.ts` — 100k rolls à ±0,3 pt des
+  poids (booster/doré/daily/premium), propriétés fast-check (bornes, monotonie,
+  somme 100), chi² d'uniformité `_pick_character` (pools 2→1 000). fast-check
+  ajouté en devDependency.
+- **Tests métier** : `tests/economy.business.test.ts` (13 tests : daily 1/j strict,
+  streak J1/J7/reset/trou, cap wishlist, points premium aux frontières, doré
+  cross-type, reset pity, quête `obtain_epic_plus`, idempotence `claim_quests`,
+  double achat cosmétique, reroll sans cosmétique).
+- **Tests concurrence** : `tests/concurrency.test.ts` (idempotence clé ×5, pool
+  d'1 perso = 200 prints distincts, burn pendant ouvertures parallèles, recharge
+  jamais négative).
+- **Garde config** : `tests/config-drift.test.ts` — le SQL live ne dérive pas de
+  `lib/config.ts` (poids, pity 25/200, doré, recharge, burn table, premium).
+- **Fixtures/CI** : `tests/helpers.ts` (garde local-only stricte : jamais de test
+  DB sur le cloud sauf `SMOKE_ENGINE_ALLOW_REMOTE=1`, users jetables, retry,
+  cleanup). Les tests DB tournent en CI locale comme le smoke engine de A —
+  **premier run à faire là-bas** (pas de Docker sur le poste d'E).
+- **Audit RLS/RPC** : `tests/rls-audit.test.ts` (16/16 exécutés sur cloud,
+  isolation table par table, readbacks cross-user), `scripts/audit-cloud.ts`
+  (9 preuves), `scripts/probe-cloud.ts` (read-only), `scripts/purge-cloud-fixtures.ts`.
+- **Simulation économique** : `scripts/sim-economy.ts` — Monte-Carlo déterministe
+  50 joueurs × 30 jours, réplique vérifiée ligne par ligne contre 0001
+  (pity à compteur, doré ×2 non appliqué au daily, premium = 4 rolls + slot
+  garanti 85/15, streak SQL). Rapports : `report-economy.md` + 3 variantes
+  (`pity-reset-naturel`, `streak-config`, `wishlist-avg 1000`).
+- **Documents** : `QA_REPORT.md` (trous classés P0/P1/P2), `ECONOMY_PATCH.md`
+  (leviers L1–L5 chiffrés avant/après — E ne décide rien).
+
+## Écarts trouvés (détail et preuves dans QA_REPORT.md)
+
+- **P0 — E-01** : aucune RPC ne vérifie `p_user = auth.uid()` → un joueur agit
+  sur le compte d'un autre (preuves cloud : booster, daily, wishlist, profil,
+  achat). Fix suggéré par A (garde `auth.uid()` en tête de RPC). **Agent 0**.
+- **P1 — E-02** : cap wishlist 10 absent (`WISHLIST_FULL` jamais levé ; 12
+  entrées acceptées sur cloud). **Agent 0** (RPC).
+- **P1 — E-03** : streak SQL `least(streak,10)*5` ≠ `chakraByDay` de la config
+  (J1 = 5 live ; standard n°12). **Agent 0**.
+- **P1 — E-04** : rachat d'un cosmétique possédé = double débit silencieux
+  (`ON CONFLICT DO NOTHING` après débit). **Agent 0**.
+- **P1 — E-07** : `get_public_profile` (0007) plante `column uc.rarity does not
+  exist` → `/u/[username]` cassée dès qu'un joueur a des cartes. **Agent 0**.
+- **P1 — E-08** : grants service_role du cloud limités à `characters` (0006) —
+  les scripts hors RPC (dev-seed, refill smoke) cassent en prod alors que le
+  local passe tout (CI localement verte). **Agent 0** (grants explicités).
+- **P2 — E-05** : daily pack sans progression `obtain_epic_plus`. **Agent 0**.
+- **P2 — E-06** : booster MIX toujours non câblé (thème `mix` absent du seed,
+  pas de branche RPC) — décision V1 de C en suspens, asset D prêt. **Agent 0**.
+- **P2 — E-09** : CSP prod avec `'unsafe-eval'`/`'unsafe-inline'` (headers()
+  identique dev/prod ; commentaire de `next.config.ts` mensonger). **Agent B**.
+- **P2 — E-10** : variables Discord fantômes dans `.env.example`
+  (`DISCORD_REDIRECT_URI` → route inexistante ; rien n'utilise ces vars).
+  **Agent B/0**.
+- **Économie** (ECONOMY_PATCH.md) : pas de puits après épuisement boutique ~J26
+  (stock +~600/j) ; daily pack = 48 % des L ; multiplicateur wishlist
+  inflationniste (×2 demande → ×2,8 stock) ; recharge exploitable ~250 ouv./jour.
+  Décisions design requises.
+
+## Demandes (ne pas contourner)
+
+- **Agent 0** : E-01 → E-08 sont tous en migrations/RPC/seeds — priorité E-01
+  avant toute ouverture du cloud à des vrais joueurs. Les `it.fails` des tests E
+  passent au rouge quand le trou est corrigé (c'est leur rôle : les basculer en
+  attendu fait partie du fix).
+- **Agent A** : la couverture smoke de `get_public_profile` ne teste que le 404
+  (E-07 a filtré) ; ajouter un cas avec cartes une fois 0 corrigé.
+- **Agent B** : E-09 (CSP prod), E-10 (.env.example).
+- **Tous** : ne pas « réparer » les `it.fails` en les supprimant — chacun
+  référence un trou documenté dans QA_REPORT.md.
+
+## Vérifications effectuées
+
+- Cloud (audit autorisé, users de test, nettoyage après) : RLS 16/16, 9 preuves
+  d'exploitation cross-user, purge confirmée en fin de passe.
+- Local : `npm run test` 60 passed / 41 skipped / 0 failed ; `tsc --noEmit` 0
+  erreur ; `eslint` propre ; les 4 rapports économiques régénérés de façon
+  reproductible (graines fixes).
+
+## Limites connues
+
+- Tests DB (métier/concurrence) **non exécutés sur ce poste** (pas de Docker) —
+  premier run en CI locale, comme le smoke engine de A à ses débuts.
+- 72 personnages de fixture restent physiquement sur le cloud, neutralisés
+  (`themes = []`, hors pool) — 0006 ne grante pas DELETE sur `characters` au
+  service_role (lié à E-08). Purge physique à trancher par Agent 0.
+- La sim économie modélise 10 ouvertures/j ; le rythme réel dépend des joueurs
+  humains (recharge exploitable ~250/j, non plafonnée).
