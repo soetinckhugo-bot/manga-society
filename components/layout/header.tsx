@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -70,9 +71,19 @@ export function Header() {
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4">
         <Link
           href="/"
-          className="shrink-0 text-base font-semibold tracking-tight text-foreground"
+          aria-label="Manga Society"
+          className="shrink-0 overflow-hidden rounded-md border border-border"
         >
-          Manga <span className="text-primary">Society</span>
+          {/* Logo officiel (public/brand/logo.png) : fond papier affiché
+              tel quel dans un cadre arrondi. */}
+          <Image
+            src="/brand/logo.png"
+            alt="Manga Society"
+            width={86}
+            height={36}
+            priority
+            className="h-9 w-auto"
+          />
         </Link>
 
         {auth.user ? (

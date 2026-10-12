@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Fingerprint, Layers, Sparkles, type LucideIcon } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
@@ -32,6 +33,17 @@ export default async function LandingPage({ params }: PageProps<'/[locale]'>) {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(212,169,78,0.08),transparent_60%)]"
         />
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 px-4 py-20 text-center sm:py-28">
+          {/* Logo officiel (fond papier, cadre arrondi pour le thème dark). */}
+          <div className="overflow-hidden rounded-xl border border-border shadow-lg">
+            <Image
+              src="/brand/logo.png"
+              alt="Manga Society"
+              width={303}
+              height={127}
+              priority
+              className="h-24 w-auto sm:h-32"
+            />
+          </div>
           <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
             {t('heroTitle')}
           </h1>
