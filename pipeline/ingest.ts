@@ -129,7 +129,7 @@ async function main(): Promise<void> {
     }
 
     const animeTitle = pickAnimeTitle(raw);
-    let { themes, excludedReason } = classifyCharacter({ media: raw.media, demographics: raw.demographics });
+    const { themes, excludedReason } = classifyCharacter({ media: raw.media, demographics: raw.demographics });
     let finalThemes = themes as ThemeSlug[];
     let finalExcluded = excludedReason;
 
