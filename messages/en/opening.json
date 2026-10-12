@@ -1,0 +1,43 @@
+{
+  "pack": {
+    "hint": "Drag your finger along the top to tear it open",
+    "open": "Open",
+    "goldenTitle": "Golden booster!"
+  },
+  "reveal": {
+    "flip": "Flip the card",
+    "next": "Next card",
+    "revealAll": "Reveal all",
+    "hint": "Space: next card · hold: fast-forward · Esc: skip",
+    "progress": "Card {current} of {total}"
+  },
+  "recap": {
+    "bestCard": "Best card",
+    "golden": "Drop rates doubled on this opening!",
+    "openAnother": "Open another",
+    "changeBooster": "Change booster",
+    "seeCollection": "View collection",
+    "copyLink": "Copy link",
+    "copied": "Link copied!",
+    "copyError": "Couldn't copy the link",
+    "image": "Image",
+    "imagePending": "Rendering…",
+    "imageError": "Couldn't render the image"
+  },
+  "aria": {
+    "label": "Booster opening",
+    "close": "Close"
+  },
+  "keyboard": {
+    "hint": "Space: next card (hold = fast-forward) · Esc: skip / close"
+  },
+  "themes": {
+    "shonen": "Shonen booster",
+    "shojo": "Shojo booster",
+    "webtoon": "Webtoon booster",
+    "big3": "Big 3 booster",
+    "seinen": "Seinen booster",
+    "isekai": "Isekai booster",
+    "mix": "Mix booster"
+  }
+}
